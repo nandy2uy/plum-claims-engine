@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Plum Claims Engine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #0b1220; --panel: #131c2e; --panel-2: #1a2540; --border: #253150;
+    --text: #e6ebf5; --muted: #93a1c4; --accent: #4f7cff;
+    --green: #2ecc71; --amber: #f5a623; --red: #ff5c5c; --grey: #8892a6;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  header { padding: 18px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; margin: 0; }
+  header span { color: var(--muted); font-size: 13px; }
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 18px; padding: 18px; align-items: start; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input, select { width: 100%; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; }
+  .doc-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; margin-bottom: 6px; align-items: center; }
+  .doc-row button { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; cursor: pointer; }
+  button.primary { margin-top: 14px; width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; }
+  button.secondary { padding: 6px 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; }
+  #addDoc { margin-top: 4px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .02em; }
+  .badge.APPROVED { background: rgba(46,204,113,.15); color: var(--green); }
+  .badge.PARTIAL { background: rgba(245,166,35,.15); color: var(--amber); }
+  .badge.REJECTED { background: rgba(255,92,92,.15); color: var(--red); }
+  .badge.MANUAL_REVIEW { background: rgba(155,120,255,.18); color: #b79bff; }
+  .badge.NEEDS_MEMBER_ACTION { background: rgba(255,92,92,.15); color: var(--red); }
+  .kv { display: grid; grid-template-columns: 160px 1fr; gap: 4px 12px; font-size: 13px; margin: 4px 0; }
+  .kv div:first-child { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; }
+  .outcome-PASS { color: var(--green); } .outcome-FAIL { color: var(--red); }
+  .outcome-WARN { color: var(--amber); } .outcome-ERROR { color: var(--red); font-weight: 700; }
+  .outcome-SKIP, .outcome-NOT_EVALUABLE { color: var(--grey); }
+  .status-APPROVED { color: var(--green); } .status-REJECTED { color: var(--red); }
+  .muted { color: var(--muted); }
+  .recent-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 6px; border: 1px solid var(--border); }
+  .recent-item:hover { border-color: var(--accent); }
+  .recent-item .top { display: flex; justify-content: space-between; font-size: 12.5px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
+  .warn-box { background: rgba(245,166,35,.1); border: 1px solid rgba(245,166,35,.35); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; margin: 6px 0; }
+  .evidence { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); white-space: pre-wrap; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tabs button { flex: 1; }
+  .tabs button.active { background: var(--accent); color: white; border-color: var(--accent); }
+  #error { color: var(--red); font-size: 12.5px; margin-top: 8px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Plum Claims Engine</h1>
+  <span>submission &middot; adjudication &middot; full decision trace</span>
+</header>
+
+<div class="layout">
+  <div>
+    <div class="panel">
+      <h2>Submit a Claim</h2>
+      <form id="claimForm">
+        <label>Member ID</label>
+        <input name="member_id" value="EMP001" required />
+        <label>Patient ID (self or dependent)</label>
+        <input name="patient_id" value="EMP001" required />
+        <label>Category</label>
+        <select name="category">
+          <option>CONSULTATION</option>
+          <option>DIAGNOSTIC</option>
+          <option>PHARMACY</option>
+          <option>DENTAL</option>
+          <option>VISION</option>
+          <option>ALTERNATIVE_MEDICINE</option>
+        </select>
+        <label>Treatment Date</label>
+        <input type="date" name="treatment_date" required />
+        <label>Claimed Amount (₹)</label>
+        <input type="number" step="0.01" name="claimed_amount" required />
+        <label>Hospital / Clinic Name (optional)</label>
+        <input name="hospital_name" placeholder="e.g. Apollo Hospitals" />
+        <label>Pre-Authorization ID (optional)</label>
+        <input name="pre_auth_id" />
+
+        <label style="margin-top:16px">Documents</label>
+        <div id="docRows"></div>
+        <button type="button" class="secondary" id="addDoc">+ Add document</button>
+
+        <button type="submit" class="primary" id="submitBtn">Submit Claim</button>
+      </form>
+      <div id="error"></div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Recent Claims (Decision Review)</h2>
+      <div id="recentList"><div class="empty">No claims yet</div></div>
+    </div>
+  </div>
+
+  <div class="panel" id="resultPanel">
+    <div class="empty">Submit a claim, or pick one from "Recent Claims", to see its decision and full trace here.</div>
+  </div>
+</div>
+
+<script>
+const DOC_TYPES = ["PRESCRIPTION","HOSPITAL_BILL","PHARMACY_BILL","LAB_REPORT","DIAGNOSTIC_REPORT","DENTAL_REPORT","DISCHARGE_SUMMARY"];
+
+function addDocRow(fileType) {
+  const row = document.createElement('div');
+  row.className = 'doc-row';
+  const select = document.createElement('select');
+  DOC_TYPES.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t.replace('_',' ');
+    if (t === fileType) opt.selected = true;
+    select.appendChild(opt);
+  });
+  select.dataset.role = 'file_type';
+  const file = document.createElement('input');
+  file.type = 'file'; file.accept = 'image/*,.pdf'; file.dataset.role = 'file';
+  const rm = document.createElement('button');
+  rm.type = 'button'; rm.textContent = '✕';
+  rm.onclick = () => row.remove();
+  row.appendChild(select); row.appendChild(file); row.appendChild(rm);
+  document.getElementById('docRows').appendChild(row);
+}
+addDocRow('PRESCRIPTION');
+addDocRow('HOSPITAL_BILL');
+document.getElementById('addDoc').onclick = () => addDocRow('PRESCRIPTION');
+
+document.getElementById('claimForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('error');
+  errorEl.textContent = '';
+  const form = e.target;
+  const fd = new FormData();
+  fd.append('claim_id', 'CLM-' + Date.now());
+  ['member_id','patient_id','category','treatment_date','claimed_amount','hospital_name','pre_auth_id'].forEach(name => {
+    const val = form.elements[name].value;
+    if (val) fd.append(name, val);
+  });
+
+  const rows = document.querySelectorAll('#docRows .doc-row');
+  let anyFile = false;
+  rows.forEach(row => {
+    const fileInput = row.querySelector('[data-role="file"]');
+    const typeSelect = row.querySelector('[data-role="file_type"]');
+    if (fileInput.files.length) {
+      anyFile = true;
+      fd.append('file_types', typeSelect.value);
+      fd.append('files', fileInput.files[0]);
+    }
+  });
+  if (!anyFile) {
+    errorEl.textContent = 'Attach at least one document.';
+    return;
+  }
+
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = 'Processing...';
+  try {
+    const res = await fetch('/api/v1/claims/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Request failed');
+    renderDecision(data);
+    loadRecent();
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+  } finally {
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('submitBtn').textContent = 'Submit Claim';
+  }
+});
+
+function fmtMoney(v) { return '₹' + Number(v).toLocaleString('en-IN', {minimumFractionDigits: 2}); }
+
+function renderDecision(d) {
+  const panel = document.getElementById('resultPanel');
+  let html = `<h2>Decision</h2>`;
+  html += `<div class="kv">
+    <div>Claim ID</div><div>${d.claim_id}</div>
+    <div>Decision</div><div><span class="badge ${d.decision}">${d.decision.replace('_',' ')}</span></div>
+    <div>Claimed</div><div>${fmtMoney(d.claimed_amount)}</div>
+    <div>Approved</div><div><b>${fmtMoney(d.approved_amount)}</b></div>
+    <div>Confidence</div><div>${(d.confidence_score*100).toFixed(0)}%</div>
+    <div>Manual review?</div><div>${d.manual_review_recommended ? 'Yes' : 'No'}</div>
+    <div>Degraded parts</div><div>${d.degraded_components.length ? d.degraded_components.join(', ') : '—'}</div>
+  </div>`;
+  html += `<div style="margin-top:10px"><b>Reason:</b> ${escapeHtml(d.reason)}</div>`;
+
+  if (d.fraud_signals && d.fraud_signals.length) {
+    html += `<div class="warn-box"><b>Fraud signals:</b><ul>${d.fraud_signals.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
+  }
+  if (d.warnings && d.warnings.length) {
+    html += `<div class="warn-box"><b>Warnings:</b><ul>${d.warnings.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
+  }
+
+  if (d.financial_breakdown) {
+    const fb = d.financial_breakdown;
+    html += `<h2 style="margin-top:18px">Financial Breakdown</h2>
+    <table><tr><th>Step</th><th>Amount</th></tr>
+    <tr><td>Raw eligible</td><td>${fmtMoney(fb.raw_eligible_amount)}</td></tr>
+    <tr><td>After network discount (${fb.network_discount_applied ? fb.network_discount_percent+'%' : 'n/a'})</td><td>${fmtMoney(fb.after_network_discount)}</td></tr>
+    <tr><td>After co-pay (${fb.copay_percent}%)</td><td>${fmtMoney(fb.after_copay)}</td></tr>
+    <tr><td>After annual OPD limit check</td><td><b>${fmtMoney(fb.after_annual_limit)}</b></td></tr>
+    </table>`;
+  }
+
+  if (d.line_item_breakdown && d.line_item_breakdown.length) {
+    html += `<h2 style="margin-top:18px">Line Items</h2><table><tr><th>Description</th><th>Amount</th><th>Status</th><th>Reason</th></tr>`;
+    d.line_item_breakdown.forEach(li => {
+      html += `<tr><td>${escapeHtml(li.description)}</td><td>${fmtMoney(li.amount)}</td><td class="status-${li.status}">${li.status}</td><td class="muted">${li.reason ? escapeHtml(li.reason) : ''}</td></tr>`;
+    });
+    html += `</table>`;
+  }
+
+  html += `<h2 style="margin-top:18px">Full Trace</h2><table>
+    <tr><th>#</th><th>Component</th><th>Rule</th><th>Outcome</th><th>Effect</th><th>Policy Ref</th><th>Evidence</th></tr>`;
+  (d.trace || []).forEach(ev => {
+    html += `<tr>
+      <td>${ev.seq}</td>
+      <td>${ev.component}</td>
+      <td class="muted">${ev.rule_id || ''}</td>
+      <td class="outcome-${ev.outcome}">${ev.outcome}</td>
+      <td class="muted">${ev.effect}</td>
+      <td class="muted">${ev.policy_ref || ev.interpretation_ref || ''}</td>
+      <td class="evidence">${ev.evidence && Object.keys(ev.evidence).length ? escapeHtml(JSON.stringify(ev.evidence)) : (ev.error_details ? escapeHtml(ev.error_details) : '')}</td>
+    </tr>`;
+  });
+  html += `</table>`;
+
+  panel.innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function loadRecent() {
+  const list = document.getElementById('recentList');
+  try {
+    const res = await fetch('/api/v1/claims');
+    const claims = await res.json();
+    if (!claims.length) { list.innerHTML = '<div class="empty">No claims yet</div>'; return; }
+    list.innerHTML = '';
+    claims.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'recent-item';
+      el.innerHTML = `<div class="top"><span>${c.claim_id}</span><span class="badge ${c.decision}">${c.decision.replace('_',' ')}</span></div>
+        <div class="muted" style="font-size:11.5px">${fmtMoney(c.approved_amount)} of ${fmtMoney(c.claimed_amount)}</div>`;
+      el.onclick = async () => {
+        const r = await fetch('/api/v1/claims/' + encodeURIComponent(c.claim_id));
+        renderDecision(await r.json());
+      };
+      list.appendChild(el);
+    });
+  } catch (e) { /* server not reachable yet */ }
+}
+
+loadRecent();
+</script>
+</body>
+</html>

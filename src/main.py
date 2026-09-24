@@ -1,83 +1,112 @@
-from fastapi import FastAPI
-from src.models.claim import ClaimSubmission, ClaimDecision
-from src.models.trace import TraceLedger, TraceEvent
-from src.core.config import get_policy_config
-from src.agents.doc_gate import DocumentGateAgent
-from src.agents.extractor import ExtractionAgent
-from src.agents.policy_engine import PolicyEngineAgent
-from src.agents.consistency import ConsistencyAgent
-from src.agents.fraud import FraudAgent
-from decimal import Decimal
-import time
+import base64
+from decimal import Decimal, InvalidOperation
+from typing import List, Optional
 
-app = FastAPI(title="Plum AI Claims Pipeline", version="1.0.0")
+from fastapi import FastAPI, Form, File, UploadFile, HTTPException
+from fastapi.staticfiles import StaticFiles
 
-# Load configs and initialize agents
+from src.models.claim import ClaimSubmission, ClaimDecision, DocumentSource
+from src.core.config import get_policy_config, get_interpretation_config, BASE_DIR
+from src.core.orchestrator import ClaimOrchestrator
+from src.core.storage import claim_store
+
+app = FastAPI(title="Plum AI Claims Pipeline", version="2.0.0")
+
 POLICY_CONFIG = get_policy_config()
-doc_gate_agent = DocumentGateAgent(policy_config=POLICY_CONFIG)
-extractor_agent = ExtractionAgent()
-consistency_agent = ConsistencyAgent()
-fraud_agent = FraudAgent(policy_config=POLICY_CONFIG)
-policy_agent = PolicyEngineAgent(policy_config=POLICY_CONFIG)
+INTERPRETATION_CONFIG = get_interpretation_config()
+orchestrator = ClaimOrchestrator(POLICY_CONFIG, INTERPRETATION_CONFIG)
+
 
 @app.get("/health")
 async def health_check():
     return {"status": "operational", "policy_loaded": bool(POLICY_CONFIG)}
 
-@app.post("/api/v1/claims/process", response_model=ClaimDecision)
+
+@app.post("/api/v1/claims", response_model=ClaimDecision)
 async def process_claim(submission: ClaimSubmission):
-    start_time = time.time()
-    ledger = TraceLedger()
-    
-    # 1. Intake
-    ledger.append(TraceEvent(seq=1, component="INTAKE", outcome="PASS", effect="NONE", evidence={"member_id": submission.member_id}, duration_ms=1))
-    
-    # 2. Document Gate
-    passed_gate, gate_payload = doc_gate_agent.evaluate(submission, ledger)
-    if not passed_gate:
-        return _build_response(submission, ledger, gate_payload["decision"], Decimal(0), gate_payload["message"])
-    
-    # 3. Extraction
-    passed_ext, extractions = await extractor_agent.process(submission, ledger)
-    if not passed_ext:
-        bad_file = extractions[0]["file_id"]
-        return _build_response(submission, ledger, "NEEDS_MEMBER_ACTION", Decimal(0), f"Document ({bad_file}) is unreadable.")
-        
-    # 4. Consistency Check (New!)
-    is_consistent, consistency_msg = consistency_agent.evaluate(extractions, ledger)
-    if not is_consistent:
-        return _build_response(submission, ledger, "NEEDS_MEMBER_ACTION", Decimal(0), consistency_msg)
-        
-    # 5. Policy Adjudication
-    decision, approved_amount, reason = policy_agent.evaluate(submission, extractions, ledger)
-    
-    # 6. Fraud & Risk Check (New!)
-    fraud_signals = fraud_agent.evaluate(submission, ledger)
-    if fraud_signals:
-        decision = "MANUAL_REVIEW"
-        reason = f"Flagged for manual review: {', '.join(fraud_signals)}"
-        approved_amount = Decimal(0)
-    
-    # Calculate System Health
-    degraded = ledger.get_degraded_components()
-    confidence = 1.0 if not degraded else 0.5
-    
-    if degraded and decision in ["APPROVED", "PARTIAL"]:
-        decision = "MANUAL_REVIEW"
-        reason = "System degraded during processing. Routing for human review."
-        approved_amount = Decimal(0)
+    """JSON submission path. Documents carry either `pre_extracted_data`
+    (fixture/eval mode — no LLM call) or `content_url` (live extraction).
+    This is what scripts/run_evals.py and any programmatic client use."""
+    return await _process_safely(submission)
 
-    return _build_response(submission, ledger, decision, approved_amount, reason, confidence, bool(degraded or fraud_signals))
 
-def _build_response(submission, ledger, decision, approved, reason, confidence=1.0, review_rec=False):
-    return ClaimDecision(
-        claim_id=submission.claim_id,
-        decision=decision,
-        approved_amount=approved,
-        claimed_amount=submission.claimed_amount,
-        reason=reason,
-        confidence_score=confidence,
-        manual_review_recommended=review_rec,
-        degraded_components=ledger.get_degraded_components(),
-        trace=ledger.events
+@app.post("/api/v1/claims/upload", response_model=ClaimDecision)
+async def submit_claim_with_files(
+    claim_id: str = Form(...),
+    member_id: str = Form(...),
+    patient_id: str = Form(...),
+    category: str = Form(...),
+    treatment_date: str = Form(...),
+    claimed_amount: str = Form(...),
+    hospital_name: Optional[str] = Form(None),
+    pre_auth_id: Optional[str] = Form(None),
+    file_types: List[str] = Form(...),
+    files: List[UploadFile] = File(...),
+):
+    """Real-world submission path: actual uploaded images/PDFs. This is what
+    the UI's claim form uses. `file_types` must have one entry per file, in
+    the same order (e.g. ["PRESCRIPTION", "HOSPITAL_BILL"])."""
+    if len(file_types) != len(files):
+        raise HTTPException(status_code=400, detail="file_types must have exactly one entry per uploaded file.")
+    try:
+        amount = Decimal(claimed_amount)
+    except InvalidOperation:
+        raise HTTPException(status_code=400, detail=f"claimed_amount '{claimed_amount}' is not a valid number.")
+
+    documents = []
+    for i, upload in enumerate(files):
+        raw = await upload.read()
+        documents.append(DocumentSource(
+            file_id=upload.filename or f"file_{i}",
+            file_type=file_types[i],
+            content_base64=base64.b64encode(raw).decode("utf-8"),
+            mime_type=upload.content_type or "image/jpeg",
+        ))
+
+    submission = ClaimSubmission(
+        claim_id=claim_id, member_id=member_id, patient_id=patient_id, category=category,
+        treatment_date=treatment_date, claimed_amount=amount, hospital_name=hospital_name,
+        pre_auth_id=pre_auth_id, documents=documents,
     )
+    return await _process_safely(submission)
+
+
+@app.get("/api/v1/claims")
+async def list_claims(limit: int = 50):
+    """Decision review feed for the UI — most recent claims first."""
+    return [record["decision"] for record in claim_store.list_recent(limit)]
+
+
+@app.get("/api/v1/claims/{claim_id}", response_model=ClaimDecision)
+async def get_claim(claim_id: str):
+    record = claim_store.get(claim_id)
+    if not record:
+        raise HTTPException(status_code=404, detail=f"No claim found with id '{claim_id}'.")
+    return record["decision"]
+
+
+async def _process_safely(submission: ClaimSubmission) -> ClaimDecision:
+    """Last line of defense: even a genuine bug in the pipeline must not
+    crash the request (assignment requirement: 'the system must not crash').
+    Every agent already isolates its own faults via @isolate_fault; this is
+    the outermost safety net in case something entirely unanticipated slips
+    through the orchestrator itself."""
+    try:
+        return await orchestrator.process(submission)
+    except Exception as e:
+        return ClaimDecision(
+            claim_id=submission.claim_id,
+            decision="MANUAL_REVIEW",
+            approved_amount=Decimal(0),
+            claimed_amount=submission.claimed_amount,
+            reason=f"Unexpected pipeline error ({type(e).__name__}); routed for manual review rather than failing the request.",
+            confidence_score=0.1,
+            manual_review_recommended=True,
+            degraded_components=["PIPELINE"],
+            trace=[],
+        )
+
+
+STATIC_DIR = BASE_DIR / "static"
+if STATIC_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")

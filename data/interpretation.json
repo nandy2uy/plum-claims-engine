@@ -1,22 +1,67 @@
 {
   "assumptions": {
     "per_claim_limit_applies_to": [
-      "consultation", 
-      "pharmacy", 
-      "vision", 
+      "consultation",
+      "pharmacy",
+      "vision",
       "alternative_medicine"
     ],
     "high_value_categories_exempt_from_per_claim_limit": [
-      "diagnostic", 
+      "diagnostic",
       "dental"
     ],
+    "per_claim_limit_exemption_rationale": "Diagnostic and dental categories have their own, larger sub_limit values (10,000 each) which already function as the practical per-visit ceiling; the flat 5,000 per_claim_limit is a consultation/pharmacy/vision/alt-medicine guardrail. Documented assumption, not stated explicitly in policy_terms.json.",
+
     "financial_waterfall_order": [
       "calculate_eligible_amount",
+      "apply_line_item_exclusions",
       "apply_network_discount",
       "apply_copay",
       "enforce_sub_limit",
       "enforce_annual_opd_limit"
     ],
-    "dental_report_missing_behavior": "WARN"
+
+    "dental_report_missing_behavior": "WARN",
+
+    "submission_date_assumption": "ClaimSubmission.submission_date defaults to treatment_date when not supplied, since this exercise has no live submission timestamp. In production the API request time would be used instead, and the submission_deadline_days rule below would be meaningful for every claim rather than a no-op for the provided fixtures.",
+
+    "ytd_claims_amount_assumption": "annual_opd_limit and family_floater.combined_limit enforcement rely on ClaimSubmission.ytd_claims_amount (amount already paid out this policy year for that member/family). This is caller-supplied ground truth here because there is no persistent claims ledger in this exercise; it defaults to 0 (first claim of the year) when omitted. A production system would compute this from its own claim store instead of trusting the caller.",
+
+    "pre_auth_validity_assumption": "pre_authorization.validity_days (30) cannot be enforced without a pre-auth issuance timestamp, which is not part of any input in this exercise. Any pre_auth_id supplied is treated as currently valid. Documented limitation.",
+
+    "pre_existing_condition_assumption": "waiting_periods.pre_existing_conditions_days (365) is not enforced: distinguishing a genuinely pre-existing condition from a newly diagnosed one requires medical history beyond a single visit's diagnosis text, which this system does not have. Only the blanket initial_waiting_period_days and the named specific_conditions are enforced.",
+
+    "branded_generic_drug_assumption": "opd_categories.pharmacy.branded_drug_copay_percent and generic_mandatory cannot be applied per-line-item because extraction does not classify a medicine as branded vs. generic (that requires a drug database lookup, out of scope here). The flat pharmacy copay_percent (0%) is applied instead, and a WARN trace event flags this limitation for manual reviewer awareness on pharmacy claims.",
+
+    "waiting_period_condition_keywords": {
+      "diabetes": ["diabetes", "t2dm", "type 2 diabetes", "type ii diabetes"],
+      "hypertension": ["hypertension", "htn"],
+      "thyroid_disorders": ["thyroid", "hypothyroidism", "hyperthyroidism"],
+      "joint_replacement": ["joint replacement", "knee replacement", "hip replacement"],
+      "maternity": ["maternity", "pregnancy", "pregnant", "antenatal"],
+      "mental_health": ["mental health", "depression", "anxiety", "psychiatric"],
+      "obesity_treatment": ["obesity", "bariatric", "weight loss"],
+      "hernia": ["hernia"],
+      "cataract": ["cataract"]
+    },
+
+    "exclusion_condition_keywords": {
+      "Self-inflicted injuries": ["self-inflicted", "self inflicted"],
+      "War or nuclear hazard": ["war injury", "nuclear hazard"],
+      "Substance abuse treatment": ["substance abuse", "de-addiction", "alcohol rehabilitation", "drug rehabilitation"],
+      "Experimental treatments": ["experimental treatment", "investigational treatment"],
+      "Infertility and assisted reproduction": ["infertility", "ivf", "assisted reproduction"],
+      "Obesity and weight loss programs": ["obesity", "weight loss program"],
+      "Bariatric surgery": ["bariatric"],
+      "Cosmetic or aesthetic procedures": ["cosmetic", "aesthetic procedure"],
+      "Vaccination (non-medically necessary)": ["vaccination", "vaccine"],
+      "Health supplements and tonics": ["supplement", "tonic"]
+    },
+
+    "diagnostic_pre_auth_keywords": {
+      "MRI": ["mri"],
+      "CT Scan": ["ct scan", "cat scan"],
+      "PET Scan": ["pet scan"]
+    }
   }
 }

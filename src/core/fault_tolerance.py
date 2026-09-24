@@ -1,46 +1,60 @@
 import time
+import inspect
 from functools import wraps
-from src.models.trace import TraceLedger, TraceEvent
+from src.models.trace import TraceLedger
+
+
+def _find_ledger(args, kwargs):
+    if "ledger" in kwargs and isinstance(kwargs["ledger"], TraceLedger):
+        return kwargs["ledger"]
+    return next((arg for arg in args if isinstance(arg, TraceLedger)), None)
+
 
 def isolate_fault(component_name: str, fallback_return):
+    """Wraps an agent's method. If it throws, this catches it, writes an ERROR
+    TraceEvent to the ledger (if one was passed to the wrapped call), and
+    returns a safe fallback instead of propagating.
+
+    This is what makes graceful degradation possible: a failing non-critical
+    agent never takes down the request, it just shows up in
+    `ledger.get_degraded_components()` and the orchestrator adjusts confidence
+    and routing accordingly.
     """
-    Wraps an agent's method. If the agent throws a Python exception, 
-    this catches it, writes the error to the trace ledger, and returns a safe fallback.
-    """
+
     def decorator(func):
-        # We handle async functions smoothly since our extractor is async
-        if getattr(func, '_is_coroutine', False) or (hasattr(func, '__code__') and func.__code__.co_flags & 0x80):
+        if inspect.iscoroutinefunction(func):
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
-                ledger = kwargs.get('ledger') or next((arg for arg in args if isinstance(arg, TraceLedger)), None)
+                ledger = _find_ledger(args, kwargs)
                 start_time = time.time()
                 try:
                     return await func(*args, **kwargs)
                 except Exception as e:
-                    if ledger:
-                        ledger.append(TraceEvent(
-                            seq=len(ledger.events) + 1, component=component_name, outcome="ERROR",
-                            effect="ESCALATE", evidence={"exception": type(e).__name__, "message": str(e)},
-                            duration_ms=int((time.time() - start_time) * 1000)
-                        ))
-                    print(f"⚠️ FAULT ISOLATED IN {component_name}: {str(e)}")
+                    _log_fault(ledger, component_name, e, start_time)
                     return fallback_return
             return async_wrapper
         else:
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
-                ledger = kwargs.get('ledger') or next((arg for arg in args if isinstance(arg, TraceLedger)), None)
+                ledger = _find_ledger(args, kwargs)
                 start_time = time.time()
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
-                    if ledger:
-                        ledger.append(TraceEvent(
-                            seq=len(ledger.events) + 1, component=component_name, outcome="ERROR",
-                            effect="ESCALATE", evidence={"exception": type(e).__name__, "message": str(e)},
-                            duration_ms=int((time.time() - start_time) * 1000)
-                        ))
-                    print(f"⚠️ FAULT ISOLATED IN {component_name}: {str(e)}")
+                    _log_fault(ledger, component_name, e, start_time)
                     return fallback_return
             return sync_wrapper
     return decorator
+
+
+def _log_fault(ledger, component_name: str, e: Exception, start_time: float):
+    if ledger:
+        ledger.log(
+            component=component_name,
+            outcome="ERROR",
+            effect="ESCALATE",
+            evidence={"exception": type(e).__name__, "message": str(e)},
+            duration_ms=int((time.time() - start_time) * 1000),
+            error_details=str(e),
+        )
+    print(f"FAULT ISOLATED IN {component_name}: {str(e)}")
