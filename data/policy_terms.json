@@ -1,0 +1,296 @@
+{
+  "policy_id": "PLUM_GHI_2024",
+  "policy_name": "Group Health Insurance — Standard Plan",
+  "insurer": "ICICI Lombard General Insurance",
+  "policy_holder": {
+    "company_name": "TechCorp Solutions Pvt Ltd",
+    "employee_count": 500,
+    "policy_start_date": "2024-04-01",
+    "policy_end_date": "2025-03-31",
+    "renewal_status": "ACTIVE"
+  },
+  "coverage": {
+    "sum_insured_per_employee": 500000,
+    "annual_opd_limit": 50000,
+    "per_claim_limit": 5000,
+    "family_floater": {
+      "enabled": true,
+      "combined_limit": 150000,
+      "covered_relationships": ["SELF", "SPOUSE", "CHILDREN", "PARENTS"]
+    }
+  },
+  "opd_categories": {
+    "consultation": {
+      "sub_limit": 2000,
+      "copay_percent": 10,
+      "network_discount_percent": 20,
+      "requires_prescription": true,
+      "requires_pre_auth": false,
+      "covered": true
+    },
+    "diagnostic": {
+      "sub_limit": 10000,
+      "copay_percent": 0,
+      "network_discount_percent": 10,
+      "requires_prescription": true,
+      "requires_pre_auth": false,
+      "pre_auth_threshold": 10000,
+      "high_value_tests_requiring_pre_auth": ["MRI", "CT Scan", "PET Scan"],
+      "covered": true
+    },
+    "pharmacy": {
+      "sub_limit": 15000,
+      "copay_percent": 0,
+      "branded_drug_copay_percent": 30,
+      "generic_mandatory": true,
+      "requires_prescription": true,
+      "covered": true
+    },
+    "dental": {
+      "sub_limit": 10000,
+      "copay_percent": 0,
+      "requires_prescription": false,
+      "requires_dental_report": true,
+      "covered": true,
+      "covered_procedures": [
+        "Root Canal Treatment",
+        "Tooth Extraction",
+        "Dental Filling",
+        "Scaling and Polishing",
+        "Dental X-Ray",
+        "Crown Placement",
+        "Gum Treatment"
+      ],
+      "excluded_procedures": [
+        "Teeth Whitening",
+        "Veneers",
+        "Orthodontic Treatment (Braces)",
+        "Implants (Cosmetic)",
+        "Bleaching"
+      ]
+    },
+    "vision": {
+      "sub_limit": 5000,
+      "copay_percent": 0,
+      "requires_prescription": true,
+      "covered": true,
+      "covered_items": ["Glasses", "Contact Lenses", "Eye Examination", "Cataract Surgery"],
+      "excluded_items": ["LASIK Surgery", "Cosmetic Eye Surgery", "Refractive Surgery"]
+    },
+    "alternative_medicine": {
+      "sub_limit": 8000,
+      "copay_percent": 0,
+      "requires_prescription": true,
+      "requires_registered_practitioner": true,
+      "max_sessions_per_year": 20,
+      "covered_systems": ["Ayurveda", "Homeopathy", "Unani", "Siddha", "Naturopathy"],
+      "covered": true
+    }
+  },
+  "waiting_periods": {
+    "initial_waiting_period_days": 30,
+    "pre_existing_conditions_days": 365,
+    "specific_conditions": {
+      "diabetes": 90,
+      "hypertension": 90,
+      "thyroid_disorders": 90,
+      "joint_replacement": 730,
+      "maternity": 270,
+      "mental_health": 180,
+      "obesity_treatment": 365,
+      "hernia": 365,
+      "cataract": 365
+    }
+  },
+  "exclusions": {
+    "conditions": [
+      "Self-inflicted injuries",
+      "War or nuclear hazard",
+      "Substance abuse treatment",
+      "Experimental treatments",
+      "Infertility and assisted reproduction",
+      "Obesity and weight loss programs",
+      "Bariatric surgery",
+      "Cosmetic or aesthetic procedures",
+      "Vaccination (non-medically necessary)",
+      "Health supplements and tonics"
+    ],
+    "dental_exclusions": [
+      "Teeth whitening",
+      "Orthodontic treatment",
+      "Cosmetic dental procedures"
+    ],
+    "vision_exclusions": [
+      "LASIK",
+      "Refractive surgery"
+    ]
+  },
+  "pre_authorization": {
+    "required_for": [
+      "MRI scan (amount > ₹10,000)",
+      "CT scan (amount > ₹10,000)",
+      "PET scan",
+      "Major surgical procedures",
+      "Planned hospitalization"
+    ],
+    "validity_days": 30
+  },
+  "network_hospitals": [
+    "Apollo Hospitals",
+    "Fortis Healthcare",
+    "Max Healthcare",
+    "Manipal Hospitals",
+    "Narayana Health",
+    "Medanta",
+    "Kokilaben Dhirubhai Ambani Hospital",
+    "Aster CMI Hospital",
+    "Columbia Asia",
+    "Sakra World Hospital"
+  ],
+  "submission_rules": {
+    "deadline_days_from_treatment": 30,
+    "minimum_claim_amount": 500,
+    "currency": "INR"
+  },
+  "document_requirements": {
+    "CONSULTATION": {
+      "required": ["PRESCRIPTION", "HOSPITAL_BILL"],
+      "optional": ["LAB_REPORT", "DIAGNOSTIC_REPORT"]
+    },
+    "DIAGNOSTIC": {
+      "required": ["PRESCRIPTION", "LAB_REPORT", "HOSPITAL_BILL"],
+      "optional": ["DISCHARGE_SUMMARY"]
+    },
+    "PHARMACY": {
+      "required": ["PRESCRIPTION", "PHARMACY_BILL"],
+      "optional": []
+    },
+    "DENTAL": {
+      "required": ["HOSPITAL_BILL"],
+      "optional": ["PRESCRIPTION", "DENTAL_REPORT"]
+    },
+    "VISION": {
+      "required": ["PRESCRIPTION", "HOSPITAL_BILL"],
+      "optional": []
+    },
+    "ALTERNATIVE_MEDICINE": {
+      "required": ["PRESCRIPTION", "HOSPITAL_BILL"],
+      "optional": []
+    }
+  },
+  "fraud_thresholds": {
+    "same_day_claims_limit": 2,
+    "monthly_claims_limit": 6,
+    "high_value_claim_threshold": 25000,
+    "auto_manual_review_above": 25000,
+    "fraud_score_manual_review_threshold": 0.80
+  },
+  "members": [
+    {
+      "member_id": "EMP001",
+      "name": "Rajesh Kumar",
+      "date_of_birth": "1985-03-15",
+      "gender": "M",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": ["DEP001", "DEP002"]
+    },
+    {
+      "member_id": "EMP002",
+      "name": "Priya Singh",
+      "date_of_birth": "1990-07-22",
+      "gender": "F",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": []
+    },
+    {
+      "member_id": "EMP003",
+      "name": "Amit Verma",
+      "date_of_birth": "1988-11-05",
+      "gender": "M",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": ["DEP003"]
+    },
+    {
+      "member_id": "EMP004",
+      "name": "Sneha Reddy",
+      "date_of_birth": "1992-02-28",
+      "gender": "F",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": []
+    },
+    {
+      "member_id": "EMP005",
+      "name": "Vikram Joshi",
+      "date_of_birth": "1979-09-10",
+      "gender": "M",
+      "relationship": "SELF",
+      "join_date": "2024-09-01",
+      "dependents": []
+    },
+    {
+      "member_id": "EMP006",
+      "name": "Kavita Nair",
+      "date_of_birth": "1983-06-18",
+      "gender": "F",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": []
+    },
+    {
+      "member_id": "EMP007",
+      "name": "Suresh Patil",
+      "date_of_birth": "1975-12-30",
+      "gender": "M",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": ["DEP004", "DEP005"]
+    },
+    {
+      "member_id": "EMP008",
+      "name": "Ravi Menon",
+      "date_of_birth": "1987-04-14",
+      "gender": "M",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": []
+    },
+    {
+      "member_id": "EMP009",
+      "name": "Anita Desai",
+      "date_of_birth": "1993-08-25",
+      "gender": "F",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": []
+    },
+    {
+      "member_id": "EMP010",
+      "name": "Deepak Shah",
+      "date_of_birth": "1980-01-07",
+      "gender": "M",
+      "relationship": "SELF",
+      "join_date": "2024-04-01",
+      "dependents": ["DEP006"]
+    },
+    {
+      "member_id": "DEP001",
+      "name": "Sunita Kumar",
+      "date_of_birth": "1987-05-20",
+      "gender": "F",
+      "relationship": "SPOUSE",
+      "primary_member_id": "EMP001"
+    },
+    {
+      "member_id": "DEP002",
+      "name": "Arjun Kumar",
+      "date_of_birth": "2015-08-12",
+      "gender": "M",
+      "relationship": "CHILD",
+      "primary_member_id": "EMP001"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "assumptions": {
+    "per_claim_limit_applies_to": [
+      "consultation", 
+      "pharmacy", 
+      "vision", 
+      "alternative_medicine"
+    ],
+    "high_value_categories_exempt_from_per_claim_limit": [
+      "diagnostic", 
+      "dental"
+    ],
+    "financial_waterfall_order": [
+      "calculate_eligible_amount",
+      "apply_network_discount",
+      "apply_copay",
+      "enforce_sub_limit",
+      "enforce_annual_opd_limit"
+    ],
+    "dental_report_missing_behavior": "WARN"
+  }
+}
