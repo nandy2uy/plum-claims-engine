@@ -41,8 +41,10 @@ Errors: ExtractionError(kind=...)
                   The member is asked to upload a different file.
   kind="SYSTEM" : our problem (no API key, timeout after retries, auth error, unusable model
                   output). Never blamed on the member; the claim degrades to manual review.
-Retries: only retryable failures (timeouts, connection errors, 429, 5xx) are retried, with
-exponential backoff. The SDK's own retry loop is disabled (max_retries=0) so retries don't nest.
+Retries: only retryable failures (timeouts, connection errors, 429, 5xx) are retried. The wait honours
+the provider's own hint when it gives one (a Retry-After header, or "retry in 15s" in a 429 body, as
+Gemini's free tier does), otherwise exponential backoff; every wait is capped at MAX_RETRY_WAIT_SECONDS
+so a claim is never held hostage. The SDK's own retry loop is disabled (max_retries=0) so retries don't nest.
 """
 
 from __future__ import annotations
@@ -53,6 +55,7 @@ import binascii
 import io
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass
 from functools import lru_cache
@@ -71,6 +74,8 @@ logger = logging.getLogger("claims.llm")
 PROMPT_VERSION = "extract-v3"
 IMAGE_MIME_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
 PDF_MIME_TYPES = {"application/pdf"}
+MAX_RETRY_WAIT_SECONDS = 20.0
+_RETRY_HINT = re.compile(r"retry in ([0-9.]+)\s*s|retryDelay'?\"?:\s*'?\"?([0-9.]+)s", re.IGNORECASE)
 RETRYABLE_ERRORS = {"APITimeoutError", "APIConnectionError", "RateLimitError", "InternalServerError", "TimeoutError"}
 SCHEMA_MODES = ["json_schema_strict", "json_object", "prompt_only"]
 QUALITY_FLAGS = ["DOCUMENT_ALTERATION", "DUPLICATE_STAMP", "STAMP_OBSCURES_TEXT", "HANDWRITTEN",
@@ -265,6 +270,27 @@ def _render_pdf(raw: bytes, label: str, max_pages: int) -> List[str]:
     return pages
 
 
+def retry_wait_seconds(exc: Exception, attempt: int) -> float:
+    """How long to wait before retrying `exc`: the provider's hint if it gave one (Retry-After header,
+    or 'retry in Ns' / retryDelay in the error body), else 0.5s, 1s, 2s...; never more than
+    MAX_RETRY_WAIT_SECONDS."""
+    hint: Optional[float] = None
+    response = getattr(exc, "response", None)
+    headers = getattr(response, "headers", None)
+    if headers is not None:
+        try:
+            value = headers.get("retry-after")
+            hint = float(value) if value is not None else None
+        except (TypeError, ValueError):
+            hint = None
+    if hint is None:
+        match = _RETRY_HINT.search(str(exc))
+        if match:
+            hint = float(match.group(1) or match.group(2))
+    wait = hint + 1.0 if hint is not None else 0.5 * (2 ** attempt)
+    return min(wait, MAX_RETRY_WAIT_SECONDS)
+
+
 @lru_cache(maxsize=4)
 def _client(api_key: str, timeout: float, base_url: str):
     from openai import AsyncOpenAI
@@ -349,7 +375,10 @@ class VisionExtractor:
                     raise ExtractionError(f"Vision model call failed ({name}): {exc}") from exc
                 last = exc
                 if attempt < self.settings.llm_max_retries:
-                    await asyncio.sleep(0.5 * (2 ** attempt))
+                    wait = retry_wait_seconds(exc, attempt)
+                    logger.warning("%s from %s; retrying in %.1fs (attempt %d)", name, self.settings.llm_provider,
+                                   wait, attempt + 1)
+                    await asyncio.sleep(wait)
         raise ExtractionError(f"Vision model unavailable after {self.settings.llm_max_retries + 1} attempts: {last}") from last
 
     async def _complete_structured(self, messages, meta: ExtractionMeta) -> Union[Completion, str]:

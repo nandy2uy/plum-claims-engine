@@ -204,3 +204,33 @@ async def test_missing_api_key_is_system_error():
     with pytest.raises(ExtractionError) as err:
         await ext.extract(_doc(**IMG))
     assert err.value.kind == "SYSTEM"
+
+
+def test_retry_wait_honours_the_providers_hint_and_is_capped():
+    from src.core.llm import MAX_RETRY_WAIT_SECONDS, retry_wait_seconds
+
+    class RateLimitError(Exception):
+        pass
+
+    gemini_429 = RateLimitError("Error code: 429 - Quota exceeded ... Please retry in 15.18s. 'retryDelay': '15s'")
+    assert retry_wait_seconds(gemini_429, 0) == pytest.approx(16.18)
+    assert retry_wait_seconds(RateLimitError("no hint"), 2) == 2.0          # exponential fallback
+    assert retry_wait_seconds(RateLimitError("retry in 300s"), 0) == MAX_RETRY_WAIT_SECONDS
+
+    class Response:
+        headers = {"retry-after": "4"}
+
+    exc = RateLimitError("429")
+    exc.response = Response()
+    assert retry_wait_seconds(exc, 0) == 5.0
+
+
+def test_live_samples_report_keeps_errors_out_of_the_table():
+    import importlib.util
+    from pathlib import Path
+    path = Path(__file__).resolve().parent.parent / "scripts" / "run_live_samples.py"
+    spec = importlib.util.spec_from_file_location("run_live_samples", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.short_error("SYSTEM: ... Error code: 429 - quota") == "Rate limit / quota (429)"
+    assert module.short_error("SYSTEM: Error code: 503 - high demand") == "Provider overloaded (503)"
