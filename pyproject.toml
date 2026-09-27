@@ -1,0 +1,17 @@
+[project]
+name = "plum-claims-engine"
+version = "2.0.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    "python-dotenv>=1.0.1",
+    "python-multipart>=0.0.9",
+    "openai>=1.40.0",
+    "pypdfium2>=4.30.0",
+    "pillow>=10.1.0",
+]
+
+[tool.vercel]
+entrypoint = "src.main:app"
