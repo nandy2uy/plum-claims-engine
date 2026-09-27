@@ -1,67 +1,553 @@
 {
-  "assumptions": {
-    "per_claim_limit_applies_to": [
-      "consultation",
-      "pharmacy",
-      "vision",
-      "alternative_medicine"
+  "version": "2.0",
+  "per_claim_limit": {
+    "rule": "max_of_global_and_category_sub_limit",
+    "applied_to": "eligible_amount",
+    "rationale": "coverage.per_claim_limit (5,000) is the ceiling for a single claim, except that a category whose own sub_limit is higher (dental 10,000, diagnostic 10,000, pharmacy 15,000, alternative_medicine 8,000) is governed by that higher sub_limit. The ceiling is compared against the policy-eligible amount (after line-item exclusions and pre-auth rejections, capped at the claimed amount), excluding pre-authorised items, whose amount is governed by the pre-authorisation itself. This is the only reading consistent with all ground-truth cases: TC008 (consultation 7,500 > 5,000 -> REJECTED), TC006 (dental 12,000 billed, 8,000 eligible <= 10,000 -> PARTIAL 8,000), TC010 (4,500 <= 5,000). It replaces the v1 hand-picked category list, which was internally inconsistent (pharmacy has the largest sub_limit yet was capped at 5,000)."
+  },
+  "relationship_aliases": {
+    "SELF": "SELF",
+    "EMPLOYEE": "SELF",
+    "SPOUSE": "SPOUSE",
+    "WIFE": "SPOUSE",
+    "HUSBAND": "SPOUSE",
+    "CHILD": "CHILDREN",
+    "CHILDREN": "CHILDREN",
+    "SON": "CHILDREN",
+    "DAUGHTER": "CHILDREN",
+    "PARENT": "PARENTS",
+    "PARENTS": "PARENTS",
+    "FATHER": "PARENTS",
+    "MOTHER": "PARENTS"
+  },
+  "waiting_period_condition_keywords": {
+    "diabetes": [
+      "diabetes",
+      "diabetic",
+      "t2dm",
+      "t1dm",
+      "type 2 diabetes",
+      "type ii diabetes",
+      "dm type 2"
     ],
-    "high_value_categories_exempt_from_per_claim_limit": [
-      "diagnostic",
-      "dental"
+    "hypertension": [
+      "hypertension",
+      "htn",
+      "high blood pressure"
     ],
-    "per_claim_limit_exemption_rationale": "Diagnostic and dental categories have their own, larger sub_limit values (10,000 each) which already function as the practical per-visit ceiling; the flat 5,000 per_claim_limit is a consultation/pharmacy/vision/alt-medicine guardrail. Documented assumption, not stated explicitly in policy_terms.json.",
-
-    "financial_waterfall_order": [
-      "calculate_eligible_amount",
-      "apply_line_item_exclusions",
-      "apply_network_discount",
-      "apply_copay",
-      "enforce_sub_limit",
-      "enforce_annual_opd_limit"
+    "thyroid_disorders": [
+      "thyroid",
+      "hypothyroidism",
+      "hyperthyroidism",
+      "hashimoto"
     ],
-
-    "dental_report_missing_behavior": "WARN",
-
-    "submission_date_assumption": "ClaimSubmission.submission_date defaults to treatment_date when not supplied, since this exercise has no live submission timestamp. In production the API request time would be used instead, and the submission_deadline_days rule below would be meaningful for every claim rather than a no-op for the provided fixtures.",
-
-    "ytd_claims_amount_assumption": "annual_opd_limit and family_floater.combined_limit enforcement rely on ClaimSubmission.ytd_claims_amount (amount already paid out this policy year for that member/family). This is caller-supplied ground truth here because there is no persistent claims ledger in this exercise; it defaults to 0 (first claim of the year) when omitted. A production system would compute this from its own claim store instead of trusting the caller.",
-
-    "pre_auth_validity_assumption": "pre_authorization.validity_days (30) cannot be enforced without a pre-auth issuance timestamp, which is not part of any input in this exercise. Any pre_auth_id supplied is treated as currently valid. Documented limitation.",
-
-    "pre_existing_condition_assumption": "waiting_periods.pre_existing_conditions_days (365) is not enforced: distinguishing a genuinely pre-existing condition from a newly diagnosed one requires medical history beyond a single visit's diagnosis text, which this system does not have. Only the blanket initial_waiting_period_days and the named specific_conditions are enforced.",
-
-    "branded_generic_drug_assumption": "opd_categories.pharmacy.branded_drug_copay_percent and generic_mandatory cannot be applied per-line-item because extraction does not classify a medicine as branded vs. generic (that requires a drug database lookup, out of scope here). The flat pharmacy copay_percent (0%) is applied instead, and a WARN trace event flags this limitation for manual reviewer awareness on pharmacy claims.",
-
-    "waiting_period_condition_keywords": {
-      "diabetes": ["diabetes", "t2dm", "type 2 diabetes", "type ii diabetes"],
-      "hypertension": ["hypertension", "htn"],
-      "thyroid_disorders": ["thyroid", "hypothyroidism", "hyperthyroidism"],
-      "joint_replacement": ["joint replacement", "knee replacement", "hip replacement"],
-      "maternity": ["maternity", "pregnancy", "pregnant", "antenatal"],
-      "mental_health": ["mental health", "depression", "anxiety", "psychiatric"],
-      "obesity_treatment": ["obesity", "bariatric", "weight loss"],
-      "hernia": ["hernia"],
-      "cataract": ["cataract"]
+    "joint_replacement": [
+      "joint replacement",
+      "knee replacement",
+      "hip replacement",
+      "arthroplasty"
+    ],
+    "maternity": [
+      "maternity",
+      "pregnancy",
+      "pregnant",
+      "antenatal",
+      "prenatal",
+      "obstetric"
+    ],
+    "mental_health": [
+      "mental health",
+      "depression",
+      "anxiety disorder",
+      "psychiatric",
+      "bipolar",
+      "schizophrenia"
+    ],
+    "obesity_treatment": [
+      "obesity",
+      "obese",
+      "bariatric",
+      "weight loss"
+    ],
+    "hernia": [
+      "hernia",
+      "inguinal hernia",
+      "umbilical hernia"
+    ],
+    "cataract": [
+      "cataract"
+    ]
+  },
+  "medicine_condition_hints": {
+    "diabetes": [
+      "metformin",
+      "glimepiride",
+      "gliclazide",
+      "sitagliptin",
+      "vildagliptin",
+      "insulin",
+      "dapagliflozin",
+      "empagliflozin"
+    ],
+    "hypertension": [
+      "amlodipine",
+      "telmisartan",
+      "losartan",
+      "olmesartan",
+      "ramipril",
+      "metoprolol"
+    ],
+    "thyroid_disorders": [
+      "levothyroxine",
+      "thyronorm",
+      "eltroxin",
+      "carbimazole"
+    ]
+  },
+  "exclusion_condition_keywords": {
+    "Self-inflicted injuries": {
+      "keywords": [
+        "self-inflicted",
+        "self inflicted",
+        "self harm",
+        "self-harm",
+        "suicide attempt"
+      ],
+      "on_match": "REJECT"
     },
-
-    "exclusion_condition_keywords": {
-      "Self-inflicted injuries": ["self-inflicted", "self inflicted"],
-      "War or nuclear hazard": ["war injury", "nuclear hazard"],
-      "Substance abuse treatment": ["substance abuse", "de-addiction", "alcohol rehabilitation", "drug rehabilitation"],
-      "Experimental treatments": ["experimental treatment", "investigational treatment"],
-      "Infertility and assisted reproduction": ["infertility", "ivf", "assisted reproduction"],
-      "Obesity and weight loss programs": ["obesity", "weight loss program"],
-      "Bariatric surgery": ["bariatric"],
-      "Cosmetic or aesthetic procedures": ["cosmetic", "aesthetic procedure"],
-      "Vaccination (non-medically necessary)": ["vaccination", "vaccine"],
-      "Health supplements and tonics": ["supplement", "tonic"]
+    "War or nuclear hazard": {
+      "keywords": [
+        "war injury",
+        "nuclear hazard",
+        "radiation exposure"
+      ],
+      "on_match": "REJECT"
     },
-
-    "diagnostic_pre_auth_keywords": {
-      "MRI": ["mri"],
-      "CT Scan": ["ct scan", "cat scan"],
-      "PET Scan": ["pet scan"]
+    "Substance abuse treatment": {
+      "keywords": [
+        "substance abuse",
+        "de-addiction",
+        "alcohol rehabilitation",
+        "drug rehabilitation",
+        "alcohol dependence"
+      ],
+      "on_match": "REJECT"
+    },
+    "Experimental treatments": {
+      "keywords": [
+        "experimental treatment",
+        "investigational treatment",
+        "clinical trial"
+      ],
+      "on_match": "REJECT"
+    },
+    "Infertility and assisted reproduction": {
+      "keywords": [
+        "infertility",
+        "ivf",
+        "iui",
+        "assisted reproduction",
+        "icsi"
+      ],
+      "on_match": "REJECT"
+    },
+    "Obesity and weight loss programs": {
+      "keywords": [
+        "obesity",
+        "obese",
+        "weight loss program",
+        "weight loss programme",
+        "diet program",
+        "diet programme",
+        "diet plan",
+        "nutrition program"
+      ],
+      "on_match": "REJECT"
+    },
+    "Bariatric surgery": {
+      "keywords": [
+        "bariatric"
+      ],
+      "on_match": "REJECT"
+    },
+    "Cosmetic or aesthetic procedures": {
+      "keywords": [
+        "cosmetic",
+        "aesthetic procedure",
+        "aesthetic treatment"
+      ],
+      "on_match": "REJECT"
+    },
+    "Vaccination (non-medically necessary)": {
+      "keywords": [
+        "vaccination",
+        "vaccine",
+        "immunisation",
+        "immunization"
+      ],
+      "on_match": "REVIEW"
+    },
+    "Health supplements and tonics": {
+      "keywords": [
+        "supplement",
+        "tonic",
+        "protein powder",
+        "multivitamin"
+      ],
+      "on_match": "REJECT"
     }
+  },
+  "procedure_aliases": {
+    "Root Canal Treatment": [
+      "root canal",
+      "rct",
+      "endodontic"
+    ],
+    "Tooth Extraction": [
+      "extraction"
+    ],
+    "Dental Filling": [
+      "filling",
+      "restoration",
+      "composite"
+    ],
+    "Scaling and Polishing": [
+      "scaling",
+      "polishing",
+      "oral prophylaxis",
+      "cleaning"
+    ],
+    "Dental X-Ray": [
+      "x-ray",
+      "xray",
+      "iopa",
+      "opg",
+      "radiograph"
+    ],
+    "Crown Placement": [
+      "crown"
+    ],
+    "Gum Treatment": [
+      "gum",
+      "periodontal",
+      "gingival",
+      "gingivitis"
+    ],
+    "Teeth Whitening": [
+      "teeth whitening",
+      "tooth whitening",
+      "whitening"
+    ],
+    "Veneers": [
+      "veneer",
+      "veneers"
+    ],
+    "Orthodontic Treatment (Braces)": [
+      "orthodontic",
+      "braces",
+      "aligner",
+      "aligners"
+    ],
+    "Implants (Cosmetic)": [
+      "cosmetic implant",
+      "cosmetic implants"
+    ],
+    "Bleaching": [
+      "bleaching"
+    ],
+    "Glasses": [
+      "glasses",
+      "spectacles",
+      "spectacle",
+      "frame",
+      "lenses"
+    ],
+    "Contact Lenses": [
+      "contact lens",
+      "contact lenses"
+    ],
+    "Eye Examination": [
+      "eye examination",
+      "eye exam",
+      "eye test",
+      "refraction"
+    ],
+    "Cataract Surgery": [
+      "cataract"
+    ],
+    "LASIK Surgery": [
+      "lasik"
+    ],
+    "LASIK": [
+      "lasik"
+    ],
+    "Cosmetic Eye Surgery": [
+      "cosmetic eye",
+      "blepharoplasty"
+    ],
+    "Refractive Surgery": [
+      "refractive surgery",
+      "prk",
+      "smile surgery"
+    ],
+    "Teeth whitening": [
+      "teeth whitening",
+      "whitening"
+    ],
+    "Orthodontic treatment": [
+      "orthodontic",
+      "braces",
+      "aligner"
+    ],
+    "Cosmetic dental procedures": [
+      "cosmetic"
+    ]
+  },
+  "pre_auth_rules": [
+    {
+      "test": "MRI",
+      "keywords": [
+        "mri",
+        "magnetic resonance"
+      ],
+      "always_required": false
+    },
+    {
+      "test": "CT Scan",
+      "keywords": [
+        "ct scan",
+        "ct",
+        "cect",
+        "hrct",
+        "cat scan",
+        "computed tomography"
+      ],
+      "always_required": false
+    },
+    {
+      "test": "PET Scan",
+      "keywords": [
+        "pet scan",
+        "pet-ct",
+        "pet ct"
+      ],
+      "always_required": true
+    }
+  ],
+  "medical_abbreviations": {
+    "htn": "hypertension",
+    "t2dm": "type 2 diabetes",
+    "t1dm": "type 1 diabetes",
+    "dm": "diabetes",
+    "uri": "upper respiratory infection",
+    "urti": "upper respiratory infection",
+    "uti": "urinary tract infection",
+    "gerd": "gastroesophageal reflux",
+    "copd": "chronic obstructive pulmonary disease",
+    "oa": "osteoarthritis",
+    "ibs": "irritable bowel syndrome",
+    "pud": "peptic ulcer disease"
+  },
+  "negation_cues": [
+    "no",
+    "not",
+    "nil",
+    "denies",
+    "denied",
+    "negative for",
+    "ruled out",
+    "rule out",
+    "r/o",
+    "without",
+    "free of",
+    "family history of",
+    "family h/o",
+    "f/h/o",
+    "fh/o",
+    "history in family of"
+  ],
+  "negation_window_words": 5,
+  "registration_patterns": {
+    "STATE_MEDICAL_COUNCIL": "^(AN|AP|AR|AS|BR|CG|CH|DL|DN|GA|GJ|HP|HR|JH|JK|KA|KL|LA|LD|MH|ML|MN|MP|MZ|NL|OD|OR|PB|PY|RJ|SK|TG|TN|TR|TS|UK|UP|WB)/\\d{4,6}/(19|20)\\d{2}$",
+    "AYUSH": "^(AYUR|HOMEO|HOM|UNANI|SIDDHA|NATURO)/[A-Z]{2}/\\d{3,6}/(19|20)\\d{2}$",
+    "DENTAL_COUNCIL": "^(DCI|[A-Z]{2}-?D)/?\\d{3,6}(/(19|20)\\d{2})?$"
+  },
+  "alternative_medicine_registration_patterns": [
+    "AYUSH"
+  ],
+  "alternative_medicine_system_keywords": {
+    "Ayurveda": [
+      "ayurveda",
+      "ayurvedic",
+      "ayur",
+      "panchakarma",
+      "vaidya",
+      "abhyanga",
+      "shirodhara"
+    ],
+    "Homeopathy": [
+      "homeopathy",
+      "homoeopathy",
+      "homeopathic",
+      "homoeopathic",
+      "homeo"
+    ],
+    "Unani": [
+      "unani",
+      "hakim",
+      "hijama"
+    ],
+    "Siddha": [
+      "siddha",
+      "varmam"
+    ],
+    "Naturopathy": [
+      "naturopathy",
+      "naturopathic",
+      "naturo",
+      "hydrotherapy",
+      "mud therapy"
+    ]
+  },
+  "session_count_pattern": "(\\d+)\\s*(?:sessions?|sittings?)",
+  "document_type_descriptions": {
+    "PRESCRIPTION": "doctor's prescription (with the doctor's name, registration number, diagnosis and signature)",
+    "HOSPITAL_BILL": "hospital bill or clinic invoice (itemised charges, bill number and the total amount paid)",
+    "PHARMACY_BILL": "pharmacy bill (medicine names, quantities and the net amount paid)",
+    "LAB_REPORT": "lab / diagnostic test report (test names and results, signed by the pathologist or radiologist)",
+    "DIAGNOSTIC_REPORT": "diagnostic report (scan or test findings)",
+    "DENTAL_REPORT": "dental report or treatment notes from your dentist",
+    "DISCHARGE_SUMMARY": "discharge summary"
+  },
+  "extraction_minimum_evidence": {
+    "PRESCRIPTION": [
+      "patient_name",
+      "diagnoses",
+      "treatments"
+    ],
+    "HOSPITAL_BILL": [
+      "total_amount",
+      "line_items"
+    ],
+    "PHARMACY_BILL": [
+      "total_amount",
+      "line_items"
+    ],
+    "LAB_REPORT": [
+      "patient_name",
+      "tests"
+    ],
+    "DIAGNOSTIC_REPORT": [
+      "patient_name",
+      "tests"
+    ],
+    "DENTAL_REPORT": [
+      "patient_name",
+      "tests"
+    ],
+    "DISCHARGE_SUMMARY": [
+      "patient_name",
+      "tests"
+    ]
+  },
+  "extraction_critical_fields": {
+    "PRESCRIPTION": [
+      "patient_name",
+      "doctor_name",
+      "registration_number",
+      "date",
+      "diagnoses"
+    ],
+    "HOSPITAL_BILL": [
+      "hospital_name",
+      "patient_name",
+      "date",
+      "total_amount",
+      "line_items"
+    ],
+    "PHARMACY_BILL": [
+      "hospital_name",
+      "patient_name",
+      "date",
+      "total_amount",
+      "line_items"
+    ],
+    "LAB_REPORT": [
+      "lab_name",
+      "patient_name",
+      "date",
+      "tests"
+    ],
+    "DIAGNOSTIC_REPORT": [
+      "lab_name",
+      "patient_name",
+      "date",
+      "tests"
+    ],
+    "DENTAL_REPORT": [
+      "patient_name",
+      "date",
+      "tests"
+    ],
+    "DISCHARGE_SUMMARY": [
+      "patient_name",
+      "date",
+      "tests"
+    ]
+  },
+  "document_date_tolerance_days": 7,
+  "name_match_fuzzy_threshold": 0.85,
+  "claim_to_bill_inflation_tolerance": "1.10",
+  "fraud_signal_weights": {
+    "SAME_DAY_LIMIT_EXCEEDED": 0.6,
+    "MONTHLY_LIMIT_EXCEEDED": 0.4,
+    "HIGH_VALUE_CLAIM": 0.3,
+    "HIGH_VALUE_AUTO_REVIEW": 0.3,
+    "POSSIBLE_DUPLICATE_CLAIM": 0.7,
+    "DUPLICATE_DOCUMENT": 0.9,
+    "DOCUMENT_ALTERATION": 0.5,
+    "DUPLICATE_STAMP": 0.3,
+    "CLAIM_EXCEEDS_BILL": 0.4
+  },
+  "confidence": {
+    "fixture_extraction": 0.95,
+    "partially_unreadable": 0.85,
+    "no_extraction_performed": 0.99,
+    "missing_registration": 0.9,
+    "invalid_registration": 0.85,
+    "identity_unverified": 0.85,
+    "fuzzy_name_match": 0.95,
+    "partial_name_match": 0.85,
+    "keyword_clinical_match": 0.97,
+    "document_date_mismatch": 0.9,
+    "degraded_component": 0.7,
+    "unlisted_procedure": 0.95,
+    "bill_total_mismatch": 0.9,
+    "missing_supporting_report": 0.95,
+    "medicine_condition_hint": 0.9,
+    "type_mismatch_accepted": 0.95,
+    "fraud_soft_score_weight": 0.5,
+    "llm_only_clinical_code": 0.9,
+    "diagnosis_missing": 0.85,
+    "extraction_model_weight": 0.3
+  },
+  "assumptions": {
+    "sub_limit": "opd_categories.*.sub_limit is used as the per-claim ceiling only where it exceeds coverage.per_claim_limit (see per_claim_limit.rationale). Where it is lower (consultation: 2,000) it cannot be a hard cap on the payable amount — TC010's ground truth approves 3,240 — so it is surfaced as a non-blocking WARN for the reviewer instead of a guess.",
+    "annual_limits": "coverage.annual_opd_limit is applied per patient; coverage.family_floater.combined_limit is applied across the employee's family. Year-to-date paid amounts come from ClaimSubmission.ytd_claims_amount when the caller supplies it, otherwise from the claim store's approved amounts within the policy year. The larger of the two is used so a caller cannot understate usage.",
+    "submission_deadline": "Checked against ClaimSubmission.submission_date. The upload endpoint stamps the server date; the JSON API accepts it explicitly. When absent the rule is logged NOT_EVALUABLE (visible in the trace) instead of silently passing.",
+    "coverage_start": "A dependent's coverage (and waiting periods) start on their own join_date if present, otherwise the primary member's join_date, otherwise the policy start date.",
+    "pre_existing_conditions": "waiting_periods.pre_existing_conditions_days (365) is not enforced: telling a pre-existing condition from a new diagnosis needs medical history this system does not receive. Logged NOT_EVALUABLE on every claim.",
+    "pre_auth_validity": "pre_authorization.validity_days cannot be checked without the pre-auth issue date; any supplied pre_auth_id is treated as valid and logged as such.",
+    "branded_drugs": "Pharmacy line items flagged is_branded=true by extraction get branded_drug_copay_percent; items with unknown brand status get the base copay_percent and a WARN.",
+    "exclusion_precedence": "A permanent exclusion supersedes a waiting period for the same condition (TC012: obesity is both excluded and has a 365-day wait; telling the member they become eligible later would be false).",
+    "per_item_pre_auth": "Pre-authorisation is evaluated per bill line item using that item's amount, so a covered consultation on the same bill is still paid when an MRI on it is rejected. With no itemised bill, the prescription's tests plus the claimed amount are used.",
+    "fraud_history": "Caller-supplied claims_history is merged with the claim store (union by claim_id), never used instead of it, so a caller cannot evade frequency checks by sending an empty history.",
+    "fixture_documents": "Documents carrying pre_extracted_data (the eval fixtures) are trusted as the extraction output ONLY when ALLOW_FIXTURE_DOCUMENTS=true; otherwise the API rejects them with 422, because a caller could otherwise skip extraction and submit invented amounts and diagnoses. The eval harness and the test-case runner enable it for their own runs.",
+    "clinical_coding": "Conditions are matched by whole-phrase keywords (interpretation.json) on the diagnosis and treatment. The vision model also proposes condition_tags from a closed vocabulary generated from policy_terms.json (specific waiting-period conditions and exclusion names). A keyword match can reject; a model tag WITHOUT a keyword match only routes the claim to manual review (CLINICAL_CODING_UNCERTAIN), so an LLM inference alone never denies a claim.",
+    "readability": "A document the model reads as POOR, or with illegible fields, keeps its own extraction confidence and adds an explicit 'partially_unreadable' confidence factor to the trace, so the reason for the lower score is visible.",
+    "negation": "A condition keyword preceded, within negation_window_words words of the same clause, by a negation cue (negation_cues) is not treated as a diagnosis: 'No family history of diabetes' does not trigger the diabetes waiting period. Negated matches are listed in the trace evidence. Abbreviations are expanded in place so the cue still applies.",
+    "extraction_confidence": "For live extractions the document's confidence is computed, not taken from the model: extraction_model_weight x model-reported confidence + (1 - extraction_model_weight) x completeness, where completeness is the share of extraction_critical_fields present for the detected document type. Both inputs are logged. Readability problems are a separate, visible confidence factor (partially_unreadable). Fixture documents keep their stated confidence.",
+    "minimum_evidence": "A live extraction that is readable but has none of extraction_minimum_evidence for its type (e.g. a prescription with no patient name, diagnosis or treatment) is returned to the member as unusable instead of being adjudicated on empty data.",
+    "diagnosis_required": "For categories that require a prescription, a claim with no readable diagnosis or treatment cannot be checked for exclusions or waiting periods, so it goes to manual review (DIAGNOSIS_UNREADABLE) rather than being approved."
   }
 }

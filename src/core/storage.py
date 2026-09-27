@@ -1,90 +1,127 @@
-"""In-memory claim store.
+"""Claim store: decided claims, for decision review, fraud history and YTD usage.
 
 Component contract
 -------------------
-Input:  `record(submission, decision)` after a claim has been decided.
-Output: `get(claim_id)` -> stored record or None.
-        `list_recent(limit)` -> most recent decisions, newest first.
-        `claims_for_member_on(member_id, date_str)` -> prior claims for the
-          same member on the same calendar day (used by FraudAgent when the
-          request doesn't supply an explicit claims_history override).
-        `claims_for_member_in_month(member_id, year, month)` -> same, monthly.
-Errors: none — this is a best-effort process-local cache, not a database.
+record(submission, decision, fingerprints)   store a decided claim (idempotent per claim_id)
+get(claim_id) -> Optional[ClaimDecision]
+list_recent(limit) -> List[ClaimDecision]     newest first
+prior_claims(member_id, exclude_claim_id)     DECIDED claims for a member (fraud frequency).
+                                              NEEDS_MEMBER_ACTION attempts don't count: the
+                                              member resubmits the same claim once fixed.
+paid_between(patient_ids, start, end, exclude_claim_id) -> Decimal
+                                              approved payouts in a window (annual limits)
+find_by_fingerprints(fps, exclude_claim_id)   earlier claims sharing a document hash or
+                                              bill number (duplicate detection)
+clear()
+Errors: none.
 
-Trade-off (documented): this is intentionally a plain dict behind a lock, not
-Postgres/Redis. It resets on restart and does not scale across multiple
-worker processes. That's an explicit, acceptable trade-off for a take-home —
-see the architecture doc's "at 10x load" section for what replaces this.
+Trade-offs (documented): process-local, in-memory, bounded (oldest records are
+evicted beyond `max_records`). Raw document bytes are NEVER retained — v1 kept
+every uploaded image as base64 inside the stored submission, an unbounded memory
+leak and needless retention of medical data. At 10x load this interface is
+backed by Postgres (see ARCHITECTURE.md); callers do not change.
 """
 
+from __future__ import annotations
+
 import threading
-from datetime import datetime
-from typing import Dict, List, Optional
+from collections import OrderedDict
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal
+from typing import Iterable, List, Optional, Tuple
 
 from src.models.claim import ClaimDecision, ClaimSubmission
 
 
+@dataclass(frozen=True)
+class StoredClaim:
+    claim_id: str
+    member_id: str
+    patient_id: str
+    treatment_date: date
+    claimed_amount: Decimal
+    approved_amount: Decimal
+    status: str
+    decision: Optional[str]
+    provider: Optional[str]
+    fingerprints: Tuple[str, ...]
+
+
 class ClaimStore:
-    def __init__(self):
+    def __init__(self, max_records: int = 5000):
         self._lock = threading.Lock()
-        self._records: Dict[str, dict] = {}
-        self._order: List[str] = []
+        self._max = max_records
+        self._claims: "OrderedDict[str, StoredClaim]" = OrderedDict()
+        self._decisions: "OrderedDict[str, ClaimDecision]" = OrderedDict()
 
-    def record(self, submission: ClaimSubmission, decision: ClaimDecision) -> None:
+    def record(self, submission: ClaimSubmission, decision: ClaimDecision, fingerprints: Iterable[str] = ()) -> None:
+        stored = StoredClaim(
+            claim_id=decision.claim_id,
+            member_id=submission.member_id,
+            patient_id=submission.patient_id or submission.member_id,
+            treatment_date=submission.treatment_date,
+            claimed_amount=submission.claimed_amount,
+            approved_amount=decision.approved_amount,
+            status=decision.status,
+            decision=decision.decision,
+            provider=submission.hospital_name,
+            fingerprints=tuple(sorted(set(fingerprints))),
+        )
         with self._lock:
-            self._records[decision.claim_id] = {
-                "submission": submission,
-                "decision": decision,
-            }
-            if decision.claim_id in self._order:
-                self._order.remove(decision.claim_id)
-            self._order.append(decision.claim_id)
+            self._claims.pop(decision.claim_id, None)
+            self._decisions.pop(decision.claim_id, None)
+            self._claims[decision.claim_id] = stored
+            self._decisions[decision.claim_id] = decision
+            while len(self._claims) > self._max:
+                oldest, _ = self._claims.popitem(last=False)
+                self._decisions.pop(oldest, None)
 
-    def get(self, claim_id: str) -> Optional[dict]:
+    def get(self, claim_id: str) -> Optional[ClaimDecision]:
         with self._lock:
-            return self._records.get(claim_id)
+            return self._decisions.get(claim_id)
 
-    def list_recent(self, limit: int = 50) -> List[dict]:
+    def list_recent(self, limit: int = 50) -> List[ClaimDecision]:
         with self._lock:
-            ids = list(reversed(self._order[-limit:]))
-            return [self._records[i] for i in ids]
+            return list(reversed(self._decisions.values()))[: max(0, limit)]
 
-    def claims_for_member_on(self, member_id: str, date_str: str, exclude_claim_id: str = "") -> List[dict]:
+    def prior_claims(self, member_id: str, exclude_claim_id: str = "") -> List[StoredClaim]:
         with self._lock:
             return [
-                r for r in self._records.values()
-                if r["submission"].member_id == member_id
-                and r["submission"].treatment_date == date_str
-                and r["decision"].claim_id != exclude_claim_id
-                and self._counts_toward_frequency(r)
+                c for c in self._claims.values()
+                if c.member_id == member_id and c.claim_id != exclude_claim_id and c.status == "DECIDED"
             ]
 
-    def claims_for_member_in_month(self, member_id: str, year: int, month: int, exclude_claim_id: str = "") -> List[dict]:
+    def paid_between(self, patient_ids: Iterable[str], start: date, end: date, exclude_claim_id: str = "") -> Decimal:
+        ids = set(patient_ids)
         with self._lock:
-            out = []
-            for r in self._records.values():
-                if r["submission"].member_id != member_id or r["decision"].claim_id == exclude_claim_id:
-                    continue
-                if not self._counts_toward_frequency(r):
-                    continue
-                try:
-                    d = datetime.strptime(r["submission"].treatment_date, "%Y-%m-%d")
-                except ValueError:
-                    continue
-                if d.year == year and d.month == month:
-                    out.append(r)
-            return out
+            return sum(
+                (c.approved_amount for c in self._claims.values()
+                 if c.patient_id in ids and c.claim_id != exclude_claim_id
+                 and c.decision in ("APPROVED", "PARTIAL") and start <= c.treatment_date <= end),
+                Decimal(0),
+            )
 
-    @staticmethod
-    def _counts_toward_frequency(record: dict) -> bool:
-        # A claim stopped at the document gate (NEEDS_MEMBER_ACTION) was never
-        # actually accepted for adjudication -- the member is expected to
-        # resubmit the same claim with fixed documents, which will be the one
-        # attempt that counts. Counting the rejected upload itself would
-        # double-count a single real claim and falsely trigger same-day/
-        # monthly frequency signals.
-        return record["decision"].decision != "NEEDS_MEMBER_ACTION"
+    def find_by_fingerprints(self, fingerprints: Iterable[str], exclude_claim_id: str = "") -> List[StoredClaim]:
+        fps = set(fingerprints)
+        if not fps:
+            return []
+        with self._lock:
+            return [
+                c for c in self._claims.values()
+                if c.claim_id != exclude_claim_id and c.status == "DECIDED" and fps.intersection(c.fingerprints)
+            ]
+
+    def clear(self) -> None:
+        with self._lock:
+            self._claims.clear()
+            self._decisions.clear()
 
 
-# Process-wide singleton — every request in this worker shares one store.
-claim_store = ClaimStore()
+def _default_store() -> ClaimStore:
+    from src.core.config import get_settings  # local import keeps this module dependency-light
+    return ClaimStore(max_records=get_settings().store_max_records)
+
+
+# Process-wide default instance used by the API; tests construct their own.
+claim_store = _default_store()

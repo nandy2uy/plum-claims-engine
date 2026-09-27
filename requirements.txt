@@ -1,11 +1,12 @@
 fastapi>=0.115.0
-uvicorn>=0.30.0
+uvicorn[standard]>=0.30.0
 pydantic>=2.9.0
 pydantic-settings>=2.6.0
-python-dotenv==1.0.0
+python-dotenv>=1.0.1
 python-multipart>=0.0.9
-openai>=1.40.0
-requests>=2.32.0
+openai>=1.40.0         # SDK for both providers (Gemini via its OpenAI-compatible endpoint)
+pypdfium2>=4.30.0      # PDF -> page images for the vision model (pip-only, no poppler)
+pillow>=10.0.0         # used by pypdfium2 to encode rendered pages
+httpx>=0.27.0          # FastAPI TestClient + scripts/run_evals.py --url
 pytest>=8.0.0
 pytest-asyncio>=0.24.0
-httpx>=0.27.0

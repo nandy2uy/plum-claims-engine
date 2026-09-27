@@ -1,0 +1,491 @@
+[
+  {
+    "entry": {
+      "file_name": "01_clean_prescription.png",
+      "declared_type": "PRESCRIPTION",
+      "mime_type": "image/png",
+      "variations": [],
+      "expected": {
+        "detected_document_type": "PRESCRIPTION",
+        "patient_name": "Rajesh Kumar",
+        "doctor_name": "Arun Sharma",
+        "registration_number": "KA/45678/2015",
+        "date": "2024-11-01",
+        "diagnoses": [
+          "Viral Fever"
+        ],
+        "tests_ordered": [
+          "CBC",
+          "Dengue NS1"
+        ]
+      }
+    },
+    "result": {
+      "detected_document_type": "PRESCRIPTION",
+      "readability": "GOOD",
+      "confidence": 1.0,
+      "unreadable_fields": [],
+      "quality_flags": [],
+      "prescription": {
+        "doctor_name": "Dr. Arun Sharma",
+        "registration_number": "KA/45678/2015",
+        "specialization": "Internal Medicine",
+        "clinic_name": "City Medical Centre, 12 MG Road, Bengaluru",
+        "patient_name": "Rajesh Kumar",
+        "date": "2024-11-01",
+        "diagnoses": [
+          "Viral Fever"
+        ],
+        "medicines": [
+          "Tab Paracetamol 650mg - 1-1-1 x 5 days",
+          "Tab Vitamin C 500mg - 0-0-1 x 7 days"
+        ],
+        "tests_ordered": [
+          "CBC",
+          "Dengue NS1"
+        ],
+        "treatments": [],
+        "condition_tags": [
+          "Health supplements and tonics"
+        ]
+      },
+      "bill": null,
+      "report": null,
+      "meta": {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "prompt_version": "extract-v3",
+        "schema_mode": "json_schema_strict",
+        "latency_ms": 14990,
+        "input_tokens": 1821,
+        "output_tokens": 291,
+        "attempts": 1,
+        "repaired": false,
+        "pages": 1
+      }
+    },
+    "checks": [
+      {
+        "field": "detected_document_type",
+        "expected": "PRESCRIPTION",
+        "actual": "PRESCRIPTION",
+        "ok": true
+      },
+      {
+        "field": "patient_name",
+        "expected": "Rajesh Kumar",
+        "actual": "Rajesh Kumar",
+        "ok": true
+      },
+      {
+        "field": "doctor_name",
+        "expected": "Arun Sharma",
+        "actual": "Dr. Arun Sharma",
+        "ok": true
+      },
+      {
+        "field": "registration_number",
+        "expected": "KA/45678/2015",
+        "actual": "KA/45678/2015",
+        "ok": true
+      },
+      {
+        "field": "date",
+        "expected": "2024-11-01",
+        "actual": "2024-11-01",
+        "ok": true
+      },
+      {
+        "field": "diagnoses",
+        "expected": [
+          "Viral Fever"
+        ],
+        "actual": [
+          "Viral Fever"
+        ],
+        "ok": true
+      },
+      {
+        "field": "tests_ordered",
+        "expected": [
+          "CBC",
+          "Dengue NS1"
+        ],
+        "actual": [
+          "CBC",
+          "Dengue NS1"
+        ],
+        "ok": true
+      }
+    ]
+  },
+  {
+    "entry": {
+      "file_name": "02_clean_hospital_bill.png",
+      "declared_type": "HOSPITAL_BILL",
+      "mime_type": "image/png",
+      "variations": [],
+      "expected": {
+        "detected_document_type": "HOSPITAL_BILL",
+        "hospital_name": "City Medical Centre",
+        "patient_name": "Rajesh Kumar",
+        "bill_number": "CMC/2024/08321",
+        "date": "2024-11-01",
+        "total_amount": 1500,
+        "line_item_count": 3
+      }
+    },
+    "result": {
+      "detected_document_type": "HOSPITAL_BILL",
+      "readability": "GOOD",
+      "confidence": 0.99,
+      "unreadable_fields": [],
+      "quality_flags": [],
+      "prescription": null,
+      "bill": {
+        "hospital_name": "CITY MEDICAL CENTRE",
+        "gstin": "29ABCDE1234F1Z5",
+        "bill_number": "CMC/2024/08321",
+        "date": "2024-11-01",
+        "patient_name": "Rajesh Kumar",
+        "total_amount": "1500",
+        "amount_in_words": "Rupees One Thousand Five Hundred Only",
+        "line_items": [
+          {
+            "description": "Consultation Fee (OPD)",
+            "quantity": 1,
+            "amount": "1000",
+            "is_branded": null
+          },
+          {
+            "description": "CBC (Complete Blood Count)",
+            "quantity": 1,
+            "amount": "200",
+            "is_branded": null
+          },
+          {
+            "description": "Dengue NS1 Antigen Test",
+            "quantity": 1,
+            "amount": "300",
+            "is_branded": null
+          }
+        ],
+        "dropped_line_items": 0
+      },
+      "report": null,
+      "meta": {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "prompt_version": "extract-v3",
+        "schema_mode": "json_schema_strict",
+        "latency_ms": 5745,
+        "input_tokens": 1822,
+        "output_tokens": 214,
+        "attempts": 1,
+        "repaired": false,
+        "pages": 1
+      }
+    },
+    "checks": [
+      {
+        "field": "detected_document_type",
+        "expected": "HOSPITAL_BILL",
+        "actual": "HOSPITAL_BILL",
+        "ok": true
+      },
+      {
+        "field": "hospital_name",
+        "expected": "City Medical Centre",
+        "actual": "CITY MEDICAL CENTRE",
+        "ok": true
+      },
+      {
+        "field": "patient_name",
+        "expected": "Rajesh Kumar",
+        "actual": "Rajesh Kumar",
+        "ok": true
+      },
+      {
+        "field": "bill_number",
+        "expected": "CMC/2024/08321",
+        "actual": "CMC/2024/08321",
+        "ok": true
+      },
+      {
+        "field": "date",
+        "expected": "2024-11-01",
+        "actual": "2024-11-01",
+        "ok": true
+      },
+      {
+        "field": "total_amount",
+        "expected": 1500,
+        "actual": "1500",
+        "ok": true
+      },
+      {
+        "field": "line_item_count",
+        "expected": 3,
+        "actual": 3,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "entry": {
+      "file_name": "03_phone_photo_bill.png",
+      "declared_type": "HOSPITAL_BILL",
+      "mime_type": "image/png",
+      "variations": [
+        "skew",
+        "blur",
+        "low_contrast",
+        "shadow"
+      ],
+      "expected": {
+        "detected_document_type": "HOSPITAL_BILL",
+        "hospital_name": "Apollo Hospitals",
+        "patient_name": "Deepak Shah",
+        "date": "2024-11-03",
+        "total_amount": 4500,
+        "line_item_count": 2
+      }
+    },
+    "result": {
+      "detected_document_type": "HOSPITAL_BILL",
+      "readability": "GOOD",
+      "confidence": 0.95,
+      "unreadable_fields": [],
+      "quality_flags": [],
+      "prescription": null,
+      "bill": {
+        "hospital_name": "APOLLO HOSPITALS",
+        "gstin": null,
+        "bill_number": "AH/OPD/77120",
+        "date": "2024-11-03",
+        "patient_name": "Deepak Shah",
+        "total_amount": "4500.0",
+        "amount_in_words": null,
+        "line_items": [
+          {
+            "description": "Consultation Fee",
+            "quantity": 1,
+            "amount": "1500.0",
+            "is_branded": null
+          },
+          {
+            "description": "Medicines",
+            "quantity": 1,
+            "amount": "3000.0",
+            "is_branded": null
+          }
+        ],
+        "dropped_line_items": 0
+      },
+      "report": null,
+      "meta": {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "prompt_version": "extract-v3",
+        "schema_mode": "json_schema_strict",
+        "latency_ms": 5969,
+        "input_tokens": 1859,
+        "output_tokens": 273,
+        "attempts": 1,
+        "repaired": false,
+        "pages": 1
+      }
+    },
+    "checks": [
+      {
+        "field": "detected_document_type",
+        "expected": "HOSPITAL_BILL",
+        "actual": "HOSPITAL_BILL",
+        "ok": true
+      },
+      {
+        "field": "hospital_name",
+        "expected": "Apollo Hospitals",
+        "actual": "APOLLO HOSPITALS",
+        "ok": true
+      },
+      {
+        "field": "patient_name",
+        "expected": "Deepak Shah",
+        "actual": "Deepak Shah",
+        "ok": true
+      },
+      {
+        "field": "date",
+        "expected": "2024-11-03",
+        "actual": "2024-11-03",
+        "ok": true
+      },
+      {
+        "field": "total_amount",
+        "expected": 4500,
+        "actual": "4500.0",
+        "ok": true
+      },
+      {
+        "field": "line_item_count",
+        "expected": 2,
+        "actual": 2,
+        "ok": true
+      }
+    ]
+  },
+  {
+    "entry": {
+      "file_name": "04_handwritten_prescription.png",
+      "declared_type": "PRESCRIPTION",
+      "mime_type": "image/png",
+      "variations": [
+        "handwriting",
+        "stamp"
+      ],
+      "expected": {
+        "detected_document_type": "PRESCRIPTION",
+        "patient_name": "Vikram Joshi",
+        "registration_number": "GJ/56789/2014",
+        "date": "2024-10-15",
+        "diagnoses": [
+          "diabetes",
+          "hypertension"
+        ]
+      }
+    },
+    "error": "SYSTEM: Vision model unavailable after 3 attempts: Error code: 503 - [{'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}]"
+  },
+  {
+    "entry": {
+      "file_name": "05_altered_pharmacy_bill.png",
+      "declared_type": "PHARMACY_BILL",
+      "mime_type": "image/png",
+      "variations": [
+        "altered_amount"
+      ],
+      "expected": {
+        "detected_document_type": "PHARMACY_BILL",
+        "patient_name": "Rajesh Kumar",
+        "date": "2024-11-01",
+        "line_item_count": 2,
+        "quality_flags": [
+          "DOCUMENT_ALTERATION"
+        ]
+      }
+    },
+    "error": "SYSTEM: Vision model unavailable after 3 attempts: Error code: 429 - [{'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 5, model: gemini-3.8-flash\\nPlease retry in 15.183314683s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-3.8-flash'}, 'quotaValue': '5'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '15s'}]}}]"
+  },
+  {
+    "entry": {
+      "file_name": "06_two_page_bill.pdf",
+      "declared_type": "HOSPITAL_BILL",
+      "mime_type": "application/pdf",
+      "variations": [],
+      "expected": {
+        "detected_document_type": "HOSPITAL_BILL",
+        "hospital_name": "Manipal Hospitals",
+        "patient_name": "Priya Singh",
+        "date": "2024-10-15",
+        "total_amount": 2600,
+        "line_item_count": 4
+      }
+    },
+    "result": {
+      "detected_document_type": "HOSPITAL_BILL",
+      "readability": "GOOD",
+      "confidence": 0.98,
+      "unreadable_fields": [],
+      "quality_flags": [],
+      "prescription": null,
+      "bill": {
+        "hospital_name": "MANIPAL HOSPITALS",
+        "gstin": null,
+        "bill_number": "MH/24/5521",
+        "date": "2024-10-15",
+        "patient_name": "Priya Singh",
+        "total_amount": "2600",
+        "amount_in_words": null,
+        "line_items": [
+          {
+            "description": "Consultation Fee",
+            "quantity": 1,
+            "amount": "900",
+            "is_branded": null
+          },
+          {
+            "description": "X-Ray Chest PA",
+            "quantity": 1,
+            "amount": "600",
+            "is_branded": null
+          },
+          {
+            "description": "Nebulisation",
+            "quantity": 1,
+            "amount": "300",
+            "is_branded": null
+          },
+          {
+            "description": "Medicines",
+            "quantity": 1,
+            "amount": "800",
+            "is_branded": null
+          }
+        ],
+        "dropped_line_items": 0
+      },
+      "report": null,
+      "meta": {
+        "provider": "gemini",
+        "model": "gemini-3.8-flash",
+        "prompt_version": "extract-v3",
+        "schema_mode": "json_schema_strict",
+        "latency_ms": 17324,
+        "input_tokens": 2895,
+        "output_tokens": 347,
+        "attempts": 3,
+        "repaired": false,
+        "pages": 2
+      }
+    },
+    "checks": [
+      {
+        "field": "detected_document_type",
+        "expected": "HOSPITAL_BILL",
+        "actual": "HOSPITAL_BILL",
+        "ok": true
+      },
+      {
+        "field": "hospital_name",
+        "expected": "Manipal Hospitals",
+        "actual": "MANIPAL HOSPITALS",
+        "ok": true
+      },
+      {
+        "field": "patient_name",
+        "expected": "Priya Singh",
+        "actual": "Priya Singh",
+        "ok": true
+      },
+      {
+        "field": "date",
+        "expected": "2024-10-15",
+        "actual": "2024-10-15",
+        "ok": true
+      },
+      {
+        "field": "total_amount",
+        "expected": 2600,
+        "actual": "2600",
+        "ok": true
+      },
+      {
+        "field": "line_item_count",
+        "expected": 4,
+        "actual": 4,
+        "ok": true
+      }
+    ]
+  }
+]

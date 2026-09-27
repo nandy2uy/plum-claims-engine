@@ -1,268 +1,314 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Plum Claims Engine</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPD claims desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;800&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0b1220; --panel: #131c2e; --panel-2: #1a2540; --border: #253150;
-    --text: #e6ebf5; --muted: #93a1c4; --accent: #4f7cff;
-    --green: #2ecc71; --amber: #f5a623; --red: #ff5c5c; --grey: #8892a6;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
-  header { padding: 18px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  header h1 { font-size: 18px; margin: 0; }
-  header span { color: var(--muted); font-size: 13px; }
-  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 18px; padding: 18px; align-items: start; }
-  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .panel h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; }
-  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
-  input, select { width: 100%; padding: 8px 10px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px; }
-  .doc-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; margin-bottom: 6px; align-items: center; }
-  .doc-row button { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; cursor: pointer; }
-  button.primary { margin-top: 14px; width: 100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; }
-  button.secondary { padding: 6px 10px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-size: 12px; }
-  #addDoc { margin-top: 4px; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .02em; }
-  .badge.APPROVED { background: rgba(46,204,113,.15); color: var(--green); }
-  .badge.PARTIAL { background: rgba(245,166,35,.15); color: var(--amber); }
-  .badge.REJECTED { background: rgba(255,92,92,.15); color: var(--red); }
-  .badge.MANUAL_REVIEW { background: rgba(155,120,255,.18); color: #b79bff; }
-  .badge.NEEDS_MEMBER_ACTION { background: rgba(255,92,92,.15); color: var(--red); }
-  .kv { display: grid; grid-template-columns: 160px 1fr; gap: 4px 12px; font-size: 13px; margin: 4px 0; }
-  .kv div:first-child { color: var(--muted); }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
-  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
-  th { color: var(--muted); font-weight: 600; }
-  .outcome-PASS { color: var(--green); } .outcome-FAIL { color: var(--red); }
-  .outcome-WARN { color: var(--amber); } .outcome-ERROR { color: var(--red); font-weight: 700; }
-  .outcome-SKIP, .outcome-NOT_EVALUABLE { color: var(--grey); }
-  .status-APPROVED { color: var(--green); } .status-REJECTED { color: var(--red); }
-  .muted { color: var(--muted); }
-  .recent-item { padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 6px; border: 1px solid var(--border); }
-  .recent-item:hover { border-color: var(--accent); }
-  .recent-item .top { display: flex; justify-content: space-between; font-size: 12.5px; }
-  .empty { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
-  .warn-box { background: rgba(245,166,35,.1); border: 1px solid rgba(245,166,35,.35); border-radius: 6px; padding: 8px 10px; font-size: 12.5px; margin: 6px 0; }
-  .evidence { font-family: ui-monospace, monospace; font-size: 11px; color: var(--muted); white-space: pre-wrap; }
-  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-  .tabs button { flex: 1; }
-  .tabs button.active { background: var(--accent); color: white; border-color: var(--accent); }
-  #error { color: var(--red); font-size: 12.5px; margin-top: 8px; white-space: pre-wrap; }
+/* Design notes: the subject is Indian OPD paperwork — prescription pads, carbon-copy bills, rubber stamps.
+   Quiet form-paper surfaces in ball-pen blue ink; the one loud element is the decision, rendered as a stamp. */
+:root{
+  --pad:#EDF1F4; --sheet:#FFFFFF; --ink:#1B2430; --muted:#5B6878; --rule:#D5DCE3;
+  --pen:#233E8B; --approve:#1E7A4C; --reject:#B3261E; --review:#9A6200; --action:#233E8B;
+  --radius:6px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pad);color:var(--ink);font:15px/1.5 "Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-variant-numeric:tabular-nums}
+header{padding:20px 28px 8px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px;font-weight:800;color:var(--pen)}
+header p{margin:0;color:var(--muted)}
+#health{margin-left:auto;font-size:13px;color:var(--muted)}
+main{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:20px;padding:12px 28px 40px;align-items:start}
+@media (max-width:900px){main{grid-template-columns:1fr;padding:12px}}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:var(--radius);padding:18px}
+h3{font-size:14px;margin:18px 0 8px}
+.tabs{display:flex;gap:4px;margin-bottom:14px;border-bottom:1px solid var(--rule)}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:8px 10px;font:inherit;font-weight:600;color:var(--muted);cursor:pointer}
+.tabs button[aria-selected=true]{color:var(--pen);border-bottom-color:var(--pen)}
+label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+input,select{width:100%;padding:8px 10px;border:1px solid var(--rule);border-radius:4px;font:inherit;background:#fff;color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.file-row{display:grid;grid-template-columns:1fr 150px 28px;gap:6px;margin-bottom:6px;align-items:center}
+.btn{background:var(--pen);color:#fff;border:0;border-radius:4px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn.secondary{background:#fff;color:var(--pen);border:1px solid var(--pen)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.6;cursor:wait}
+.icon{background:none;border:0;font-size:18px;color:var(--muted);cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #8EA6E8;outline-offset:1px}
+.hint{font-size:12px;color:var(--muted);margin:4px 0 0}
+.cases{list-style:none;padding:0;margin:10px 0 0}
+.cases li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--rule)}
+.cases li span{flex:1;font-size:14px}
+.cases small{color:var(--muted);display:block}
+.verdict{font-size:12px;font-weight:700;font-style:normal}
+.verdict.pass{color:var(--approve)} .verdict.fail{color:var(--reject)}
+
+#empty{color:var(--muted);padding:40px 10px;text-align:center}
+.decision-head{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.stamp{display:inline-block;padding:8px 18px;border:3px solid currentColor;border-radius:8px;font-weight:800;font-size:22px;
+  letter-spacing:.04em;transform:rotate(-4deg);opacity:.9;box-shadow:inset 0 0 0 2px #fff, inset 0 0 0 4px currentColor}
+.stamp.APPROVED,.stamp.PARTIAL{color:var(--approve)} .stamp.REJECTED{color:var(--reject)}
+.stamp.MANUAL_REVIEW{color:var(--review)} .stamp.ACTION{color:var(--action)}
+@media (prefers-reduced-motion:no-preference){.stamp.fresh{animation:stamp .35s ease-out}}
+@keyframes stamp{from{transform:rotate(-4deg) scale(1.6);opacity:0}to{transform:rotate(-4deg) scale(1);opacity:.9}}
+.amount{font-size:30px;font-weight:800}
+.amount small{display:block;font-size:13px;font-weight:500;color:var(--muted)}
+.facts{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px}
+.facts b{color:var(--ink)}
+.message{background:var(--pad);border-left:4px solid var(--pen);padding:12px 14px;margin:16px 0 0;border-radius:0 4px 4px 0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid var(--rule);background:#fff}
+.chip.reject{color:var(--reject);border-color:#E7B7B3} .chip.review{color:var(--review);border-color:#E6CFA3} .chip.degrade{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--muted);border-bottom:1px solid var(--rule);padding:6px}
+td{border-bottom:1px solid var(--rule);padding:6px;vertical-align:top}
+td.num{text-align:right;white-space:nowrap}
+.st-APPROVED{color:var(--approve);font-weight:600} .st-REJECTED{color:var(--reject);font-weight:600} .st-NEEDS_REVIEW{color:var(--review);font-weight:600}
+.steps{margin:0;padding-left:20px}
+.conf{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:13px}
+.conf span{background:var(--pad);padding:2px 8px;border-radius:4px}
+.scroll{overflow-x:auto}
+.trace-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.trace-tools button{font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--rule);background:#fff;cursor:pointer}
+.trace-tools button[aria-pressed=true]{background:var(--pen);color:#fff;border-color:var(--pen)}
+.ev{display:grid;grid-template-columns:34px 118px 104px 1fr;gap:8px;padding:7px 4px;border-bottom:1px solid var(--rule);font-size:13px}
+@media (max-width:640px){.ev{grid-template-columns:30px 1fr}.ev .comp,.ev .out,.ev details{grid-column:2}}
+.ev .seq{color:var(--muted)} .ev .comp{font-weight:600}
+.out{font-weight:700;font-size:12px}
+.out.PASS{color:var(--approve)} .out.FAIL,.out.ERROR{color:var(--reject)} .out.WARN{color:var(--review)}
+.out.SKIP,.out.NOT_EVALUABLE,.out.INFO{color:var(--muted)}
+.ev details summary{cursor:pointer;list-style:none}
+.ev details summary::-webkit-details-marker{display:none}
+.ev .meta{color:var(--muted);font-size:12px;margin-top:2px}
+.ev pre{white-space:pre-wrap;background:var(--pad);padding:8px;border-radius:4px;font-size:12px;margin:6px 0 0}
+.err{color:var(--reject);font-size:14px;margin-top:10px}
 </style>
 </head>
 <body>
-
 <header>
-  <h1>Plum Claims Engine</h1>
-  <span>submission &middot; adjudication &middot; full decision trace</span>
+  <h1>OPD claims desk</h1>
+  <p>Submit a claim, or run one of the 12 assignment cases, and see exactly how it was decided.</p>
+  <span id="health"></span>
 </header>
 
-<div class="layout">
-  <div>
-    <div class="panel">
-      <h2>Submit a Claim</h2>
-      <form id="claimForm">
-        <label>Member ID</label>
-        <input name="member_id" value="EMP001" required />
-        <label>Patient ID (self or dependent)</label>
-        <input name="patient_id" value="EMP001" required />
-        <label>Category</label>
-        <select name="category">
-          <option>CONSULTATION</option>
-          <option>DIAGNOSTIC</option>
-          <option>PHARMACY</option>
-          <option>DENTAL</option>
-          <option>VISION</option>
-          <option>ALTERNATIVE_MEDICINE</option>
-        </select>
-        <label>Treatment Date</label>
-        <input type="date" name="treatment_date" required />
-        <label>Claimed Amount (₹)</label>
-        <input type="number" step="0.01" name="claimed_amount" required />
-        <label>Hospital / Clinic Name (optional)</label>
-        <input name="hospital_name" placeholder="e.g. Apollo Hospitals" />
-        <label>Pre-Authorization ID (optional)</label>
-        <input name="pre_auth_id" />
-
-        <label style="margin-top:16px">Documents</label>
-        <div id="docRows"></div>
-        <button type="button" class="secondary" id="addDoc">+ Add document</button>
-
-        <button type="submit" class="primary" id="submitBtn">Submit Claim</button>
-      </form>
-      <div id="error"></div>
+<main>
+  <section class="sheet" aria-label="Claim input">
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="submit">New claim</button>
+      <button role="tab" aria-selected="false" data-tab="cases">Test cases</button>
+      <button role="tab" aria-selected="false" data-tab="recent">Recent</button>
     </div>
 
-    <div class="panel" style="margin-top:16px">
-      <h2>Recent Claims (Decision Review)</h2>
-      <div id="recentList"><div class="empty">No claims yet</div></div>
-    </div>
-  </div>
+    <form id="claim-form" data-panel="submit" novalidate>
+      <label for="member">Employee</label>
+      <select id="member" required></select>
+      <label for="patient">Patient</label>
+      <select id="patient"></select>
+      <div class="row">
+        <div><label for="category">Treatment type</label><select id="category" required></select></div>
+        <div><label for="amount">Amount claimed (₹)</label><input id="amount" inputmode="decimal" required placeholder="1500"></div>
+      </div>
+      <div class="row">
+        <div><label for="tdate">Treatment date</label><input id="tdate" type="date" required></div>
+        <div><label for="sdate">Submission date</label><input id="sdate" type="date"></div>
+      </div>
+      <p class="hint"><span id="period-hint"></span> Submission date defaults to today; claims must be filed within 30 days of treatment, so set it when replaying an older claim.</p>
+      <p class="hint" id="deadline-hint" role="status"></p>
+      <label for="hospital">Hospital or clinic</label>
+      <input id="hospital" placeholder="Apollo Hospitals">
+      <label for="preauth">Pre-authorisation number, if you have one</label>
+      <input id="preauth">
+      <h3>Documents</h3>
+      <p class="hint" id="doc-hint">Choose a treatment type to see which documents are required.</p>
+      <div id="files"></div>
+      <button type="button" class="btn secondary small" id="add-file">Add a document</button>
+      <div style="margin-top:16px"><button class="btn" type="submit" id="submit">Submit claim</button></div>
+      <div class="err" id="form-error" role="alert"></div>
+    </form>
 
-  <div class="panel" id="resultPanel">
-    <div class="empty">Submit a claim, or pick one from "Recent Claims", to see its decision and full trace here.</div>
-  </div>
-</div>
+    <div data-panel="cases" hidden>
+      <p class="hint">Each case runs through the real pipeline on an isolated store, then is checked against its expected outcome.</p>
+      <button class="btn small" id="run-all" type="button">Run all 12</button>
+      <ul class="cases" id="case-list"></ul>
+    </div>
+
+    <div data-panel="recent" hidden>
+      <ul class="cases" id="recent-list"></ul>
+    </div>
+  </section>
+
+  <section class="sheet" aria-live="polite" id="result">
+    <div id="empty">No claim selected yet. Submit one, or open Test cases and run TC004 for a clean approval.</div>
+  </section>
+</main>
 
 <script>
 const DOC_TYPES = ["PRESCRIPTION","HOSPITAL_BILL","PHARMACY_BILL","LAB_REPORT","DIAGNOSTIC_REPORT","DENTAL_REPORT","DISCHARGE_SUMMARY"];
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const inr = v => v === null || v === undefined ? "—" : "₹" + Number(v).toLocaleString("en-IN", {maximumFractionDigits: 2});
+const human = s => String(s).replace(/_/g, " ").toLowerCase();
+const has = v => v !== null && v !== undefined;
+let policy = null;
 
-function addDocRow(fileType) {
-  const row = document.createElement('div');
-  row.className = 'doc-row';
-  const select = document.createElement('select');
-  DOC_TYPES.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t; opt.textContent = t.replace('_',' ');
-    if (t === fileType) opt.selected = true;
-    select.appendChild(opt);
-  });
-  select.dataset.role = 'file_type';
-  const file = document.createElement('input');
-  file.type = 'file'; file.accept = 'image/*,.pdf'; file.dataset.role = 'file';
-  const rm = document.createElement('button');
-  rm.type = 'button'; rm.textContent = '✕';
-  rm.onclick = () => row.remove();
-  row.appendChild(select); row.appendChild(file); row.appendChild(rm);
-  document.getElementById('docRows').appendChild(row);
+document.querySelectorAll("[role=tab]").forEach(tab => tab.addEventListener("click", () => {
+  document.querySelectorAll("[role=tab]").forEach(t => t.setAttribute("aria-selected", t === tab));
+  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== tab.dataset.tab);
+  if (tab.dataset.tab === "recent") loadRecent();
+}));
+
+async function boot() {
+  const [health, pol, cases] = await Promise.all([
+    fetch("/health").then(r => r.json()), fetch("/api/v1/policy").then(r => r.json()), fetch("/api/v1/test-cases").then(r => r.json())]);
+  policy = pol;
+  $("#health").textContent = `${health.policy_id}. Live document reading ${health.live_extraction_configured
+    ? `on (${health.llm_provider}, ${health.llm_model})` : `off (set ${health.llm_key_env})`}.`;
+  $("#member").innerHTML = pol.members.map(m => `<option value="${m.member_id}">${esc(m.name)} (${m.member_id})</option>`).join("");
+  $("#category").innerHTML = `<option value="">Choose…</option>` + Object.keys(pol.categories).map(c => `<option value="${c}">${human(c)}</option>`).join("");
+  const [start, end] = pol.policy_period;
+  $("#tdate").min = start; $("#tdate").max = end;
+  $("#period-hint").textContent = `Policy period ${start} to ${end}.`;
+  fillPatients();
+  $("#case-list").innerHTML = cases.map(c => `<li data-case="${c.case_id}"><span><b>${c.case_id}</b> ${esc(c.case_name)}
+     <small>Expected: ${esc(c.expected.decision || "stop for member action")}</small></span>
+     <em class="verdict"></em><button class="btn secondary small" data-run="${c.case_id}">Run</button></li>`).join("");
 }
-addDocRow('PRESCRIPTION');
-addDocRow('HOSPITAL_BILL');
-document.getElementById('addDoc').onclick = () => addDocRow('PRESCRIPTION');
+function fillPatients() {
+  const m = policy.members.find(x => x.member_id === $("#member").value);
+  $("#patient").innerHTML = `<option value="">${esc(m.name)} (self)</option>` +
+    m.dependents.map(d => `<option value="${d.member_id}">${esc(d.name || "No roster record")} (${d.member_id})</option>`).join("");
+}
+$("#member").addEventListener("change", fillPatients);
+function deadlineHint() {
+  const t = $("#tdate").valueAsDate, sub = $("#sdate").valueAsDate || new Date();
+  $("#deadline-hint").textContent = t && (sub - t) / 864e5 > 30
+    ? "This submission date is more than 30 days after treatment, so the claim will be rejected for the deadline." : "";
+}
+$("#tdate").addEventListener("change", deadlineHint);
+$("#sdate").addEventListener("change", deadlineHint);
+$("#category").addEventListener("change", () => {
+  const c = policy.categories[$("#category").value];
+  $("#files").innerHTML = "";
+  if (!c) return;
+  $("#doc-hint").textContent = `Required: ${c.required.map(human).join(", ")}` + (c.optional.length ? `. Optional: ${c.optional.map(human).join(", ")}.` : ".");
+  c.required.forEach(t => addFileRow(t));
+});
+function addFileRow(type = "PRESCRIPTION") {
+  const row = document.createElement("div");
+  row.className = "file-row";
+  row.innerHTML = `<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Document file">
+    <select aria-label="Document type">${DOC_TYPES.map(t => `<option value="${t}" ${t === type ? "selected" : ""}>${human(t)}</option>`).join("")}</select>
+    <button type="button" class="icon" aria-label="Remove document">×</button>`;
+  row.querySelector(".icon").onclick = () => row.remove();
+  $("#files").appendChild(row);
+}
+$("#add-file").onclick = () => addFileRow();
 
-document.getElementById('claimForm').addEventListener('submit', async (e) => {
+$("#claim-form").addEventListener("submit", async e => {
   e.preventDefault();
-  const errorEl = document.getElementById('error');
-  errorEl.textContent = '';
-  const form = e.target;
+  $("#form-error").textContent = "";
+  const rows = [...document.querySelectorAll(".file-row")].filter(r => r.querySelector("input").files[0]);
+  if (!$("#category").value || !$("#amount").value || !$("#tdate").value) return $("#form-error").textContent = "Fill in treatment type, amount and treatment date.";
+  if (!rows.length) return $("#form-error").textContent = "Attach at least one document.";
   const fd = new FormData();
-  fd.append('claim_id', 'CLM-' + Date.now());
-  ['member_id','patient_id','category','treatment_date','claimed_amount','hospital_name','pre_auth_id'].forEach(name => {
-    const val = form.elements[name].value;
-    if (val) fd.append(name, val);
-  });
-
-  const rows = document.querySelectorAll('#docRows .doc-row');
-  let anyFile = false;
-  rows.forEach(row => {
-    const fileInput = row.querySelector('[data-role="file"]');
-    const typeSelect = row.querySelector('[data-role="file_type"]');
-    if (fileInput.files.length) {
-      anyFile = true;
-      fd.append('file_types', typeSelect.value);
-      fd.append('files', fileInput.files[0]);
-    }
-  });
-  if (!anyFile) {
-    errorEl.textContent = 'Attach at least one document.';
-    return;
-  }
-
-  document.getElementById('submitBtn').disabled = true;
-  document.getElementById('submitBtn').textContent = 'Processing...';
+  fd.append("member_id", $("#member").value);
+  if ($("#patient").value) fd.append("patient_id", $("#patient").value);
+  fd.append("category", $("#category").value);
+  fd.append("claimed_amount", $("#amount").value);
+  fd.append("treatment_date", $("#tdate").value);
+  if ($("#sdate").value) fd.append("submission_date", $("#sdate").value);
+  if ($("#hospital").value) fd.append("hospital_name", $("#hospital").value);
+  if ($("#preauth").value) fd.append("pre_auth_id", $("#preauth").value);
+  rows.forEach(r => { fd.append("files", r.querySelector("input").files[0]); fd.append("file_types", r.querySelector("select").value); });
+  $("#submit").disabled = true; $("#submit").textContent = "Reading documents…";
   try {
-    const res = await fetch('/api/v1/claims/upload', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || 'Request failed');
-    renderDecision(data);
-    loadRecent();
-  } catch (err) {
-    errorEl.textContent = 'Error: ' + err.message;
-  } finally {
-    document.getElementById('submitBtn').disabled = false;
-    document.getElementById('submitBtn').textContent = 'Submit Claim';
-  }
+    const res = await fetch("/api/v1/claims/upload", {method: "POST", body: fd});
+    const body = await res.json();
+    if (!res.ok) throw new Error((body.detail || []).join("; ") || res.statusText);
+    render(body);
+  } catch (err) { $("#form-error").textContent = err.message; }
+  finally { $("#submit").disabled = false; $("#submit").textContent = "Submit claim"; }
 });
 
-function fmtMoney(v) { return '₹' + Number(v).toLocaleString('en-IN', {minimumFractionDigits: 2}); }
-
-function renderDecision(d) {
-  const panel = document.getElementById('resultPanel');
-  let html = `<h2>Decision</h2>`;
-  html += `<div class="kv">
-    <div>Claim ID</div><div>${d.claim_id}</div>
-    <div>Decision</div><div><span class="badge ${d.decision}">${d.decision.replace('_',' ')}</span></div>
-    <div>Claimed</div><div>${fmtMoney(d.claimed_amount)}</div>
-    <div>Approved</div><div><b>${fmtMoney(d.approved_amount)}</b></div>
-    <div>Confidence</div><div>${(d.confidence_score*100).toFixed(0)}%</div>
-    <div>Manual review?</div><div>${d.manual_review_recommended ? 'Yes' : 'No'}</div>
-    <div>Degraded parts</div><div>${d.degraded_components.length ? d.degraded_components.join(', ') : '—'}</div>
-  </div>`;
-  html += `<div style="margin-top:10px"><b>Reason:</b> ${escapeHtml(d.reason)}</div>`;
-
-  if (d.fraud_signals && d.fraud_signals.length) {
-    html += `<div class="warn-box"><b>Fraud signals:</b><ul>${d.fraud_signals.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
-  }
-  if (d.warnings && d.warnings.length) {
-    html += `<div class="warn-box"><b>Warnings:</b><ul>${d.warnings.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ul></div>`;
-  }
-
-  if (d.financial_breakdown) {
-    const fb = d.financial_breakdown;
-    html += `<h2 style="margin-top:18px">Financial Breakdown</h2>
-    <table><tr><th>Step</th><th>Amount</th></tr>
-    <tr><td>Raw eligible</td><td>${fmtMoney(fb.raw_eligible_amount)}</td></tr>
-    <tr><td>After network discount (${fb.network_discount_applied ? fb.network_discount_percent+'%' : 'n/a'})</td><td>${fmtMoney(fb.after_network_discount)}</td></tr>
-    <tr><td>After co-pay (${fb.copay_percent}%)</td><td>${fmtMoney(fb.after_copay)}</td></tr>
-    <tr><td>After annual OPD limit check</td><td><b>${fmtMoney(fb.after_annual_limit)}</b></td></tr>
-    </table>`;
-  }
-
-  if (d.line_item_breakdown && d.line_item_breakdown.length) {
-    html += `<h2 style="margin-top:18px">Line Items</h2><table><tr><th>Description</th><th>Amount</th><th>Status</th><th>Reason</th></tr>`;
-    d.line_item_breakdown.forEach(li => {
-      html += `<tr><td>${escapeHtml(li.description)}</td><td>${fmtMoney(li.amount)}</td><td class="status-${li.status}">${li.status}</td><td class="muted">${li.reason ? escapeHtml(li.reason) : ''}</td></tr>`;
-    });
-    html += `</table>`;
-  }
-
-  html += `<h2 style="margin-top:18px">Full Trace</h2><table>
-    <tr><th>#</th><th>Component</th><th>Rule</th><th>Outcome</th><th>Effect</th><th>Policy Ref</th><th>Evidence</th></tr>`;
-  (d.trace || []).forEach(ev => {
-    html += `<tr>
-      <td>${ev.seq}</td>
-      <td>${ev.component}</td>
-      <td class="muted">${ev.rule_id || ''}</td>
-      <td class="outcome-${ev.outcome}">${ev.outcome}</td>
-      <td class="muted">${ev.effect}</td>
-      <td class="muted">${ev.policy_ref || ev.interpretation_ref || ''}</td>
-      <td class="evidence">${ev.evidence && Object.keys(ev.evidence).length ? escapeHtml(JSON.stringify(ev.evidence)) : (ev.error_details ? escapeHtml(ev.error_details) : '')}</td>
-    </tr>`;
-  });
-  html += `</table>`;
-
-  panel.innerHTML = html;
+async function runCase(id) {
+  const li = document.querySelector(`[data-case="${id}"]`);
+  li.querySelector(".verdict").textContent = "…";
+  const body = await fetch(`/api/v1/test-cases/${id}/run`, {method: "POST"}).then(r => r.json());
+  li.querySelector(".verdict").className = "verdict " + (body.passed ? "pass" : "fail");
+  li.querySelector(".verdict").textContent = body.passed ? "Matches" : "Mismatch";
+  return body;
 }
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+$("#case-list").addEventListener("click", async e => {
+  const id = e.target.dataset.run; if (!id) return;
+  const body = await runCase(id);
+  render(body.decision, body);
+});
+$("#run-all").onclick = async () => { for (const li of document.querySelectorAll("[data-case]")) await runCase(li.dataset.case); };
 
 async function loadRecent() {
-  const list = document.getElementById('recentList');
-  try {
-    const res = await fetch('/api/v1/claims');
-    const claims = await res.json();
-    if (!claims.length) { list.innerHTML = '<div class="empty">No claims yet</div>'; return; }
-    list.innerHTML = '';
-    claims.forEach(c => {
-      const el = document.createElement('div');
-      el.className = 'recent-item';
-      el.innerHTML = `<div class="top"><span>${c.claim_id}</span><span class="badge ${c.decision}">${c.decision.replace('_',' ')}</span></div>
-        <div class="muted" style="font-size:11.5px">${fmtMoney(c.approved_amount)} of ${fmtMoney(c.claimed_amount)}</div>`;
-      el.onclick = async () => {
-        const r = await fetch('/api/v1/claims/' + encodeURIComponent(c.claim_id));
-        renderDecision(await r.json());
-      };
-      list.appendChild(el);
-    });
-  } catch (e) { /* server not reachable yet */ }
+  const list = await fetch("/api/v1/claims").then(r => r.json());
+  $("#recent-list").innerHTML = list.length ? list.map(d => `<li><span><b>${esc(d.claim_id)}</b> ${esc(d.decision ? human(d.decision) : "needs member action")}
+     <small>${inr(d.approved_amount)} of ${inr(d.claimed_amount)}</small></span><button class="btn secondary small" data-open="${esc(d.claim_id)}">Open</button></li>`).join("")
+    : `<li><span>No claims submitted yet. Submitted claims appear here; test-case runs do not.</span></li>`;
 }
+$("#recent-list").addEventListener("click", async e => {
+  const id = e.target.dataset.open; if (!id) return;
+  render(await fetch(`/api/v1/claims/${encodeURIComponent(id)}`).then(r => r.json()));
+});
 
-loadRecent();
+function render(d, run) {
+  const stampClass = d.decision || "ACTION";
+  const stampText = d.decision ? human(d.decision) : "action needed";
+  const amountBlock = d.status === "NEEDS_MEMBER_ACTION" ? "" :
+    `<div class="amount">${inr(d.approved_amount)}<small>approved of ${inr(d.claimed_amount)} claimed${d.provisional_amount ? `; ${inr(d.provisional_amount)} held pending review` : ""}</small></div>`;
+  const chips = [
+    ...d.rejection_reasons.map(r => `<span class="chip reject">${esc(r)}</span>`),
+    ...d.review_reasons.map(r => `<span class="chip review">${esc(r)}</span>`),
+    ...d.degraded_components.map(c => `<span class="chip degrade">${esc(c)} failed and was skipped</span>`)].join("");
+  let html = `
+    <div class="decision-head"><span class="stamp fresh ${stampClass}">${esc(stampText)}</span>${amountBlock}</div>
+    <div class="facts"><span>Claim <b>${esc(d.claim_id)}</b></span><span>Confidence <b>${d.confidence_score}</b></span>
+      ${has(d.fraud_score) ? `<span>Fraud score <b>${d.fraud_score}</b></span>` : ""}
+      ${d.manual_review_recommended ? `<span><b>Manual review recommended</b></span>` : ""}</div>
+    ${chips ? `<div class="chips">${chips}</div>` : ""}
+    <p class="message"><b>What the member sees</b><br>${esc(d.member_message)}</p>`;
+  if (run) html += `<h3>Against the expected outcome: ${run.passed ? "matches" : "does not match"}</h3>
+     <ul class="steps">${run.checks.map(c => `<li class="${c.passed ? "st-APPROVED" : "st-REJECTED"}">${esc(c.name)}${c.passed ? "" : ": " + esc(c.detail)}</li>`).join("")}</ul>`;
+  if (d.required_actions.length) html += `<h3>What the member needs to do</h3><ul class="steps">${d.required_actions.map(a => `<li>${esc(a.detail)}</li>`).join("")}</ul>`;
+  html += `<h3>Reason for the operations team</h3><p>${esc(d.reason)}</p>`;
+  if (d.fraud_signals.length) html += `<h3>Fraud signals</h3><ul class="steps">${d.fraud_signals.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`;
+  if (d.warnings.length) html += `<h3>Warnings</h3><ul class="steps">${d.warnings.map(s => `<li>${esc(s)}</li>`).join("")}</ul>`;
+  if (d.line_item_breakdown.length) html += `<h3>Line items</h3><div class="scroll"><table><thead><tr><th>Item</th><th>Amount</th><th>Status</th><th>Reason</th></tr></thead><tbody>
+     ${d.line_item_breakdown.map(l => `<tr><td>${esc(l.description)}</td><td class="num">${inr(l.amount)}</td><td class="st-${l.status}">${human(l.status)}</td><td>${esc(l.reason || "")}</td></tr>`).join("")}</tbody></table></div>`;
+  if (d.financial_breakdown) html += `<h3>How the amount was calculated</h3><ol class="steps">${d.financial_breakdown.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>`;
+  html += `<h3>How confidence was calculated</h3><div class="conf">${d.confidence_breakdown.map((f, i) =>
+     `${i ? "×" : ""}<span title="${esc(f.reason)}">${f.factor} ${esc(f.rule_id === "base" ? "base" : human(f.rule_id || f.component))}</span>`).join("")} = <b>${d.confidence_score}</b></div>`;
+  html += `<h3>Decision trace, ${d.trace.length} steps</h3>
+    <div class="trace-tools" id="trace-tools">
+      <button aria-pressed="true" data-f="all">Everything</button><button aria-pressed="false" data-f="issues">Failures and warnings</button>
+      ${[...new Set(d.trace.map(e => e.component))].map(c => `<button aria-pressed="false" data-f="c:${c}">${human(c)}</button>`).join("")}
+    </div><div id="trace"></div>`;
+  $("#result").innerHTML = html;
+  const draw = f => $("#trace").innerHTML = d.trace.filter(e => f === "all" ? true : f === "issues" ? ["FAIL","WARN","ERROR"].includes(e.outcome) : e.component === f.slice(2)).map(e => `
+    <div class="ev"><span class="seq">${e.seq}</span><span class="comp">${human(e.component)}</span><span class="out ${e.outcome}">${human(e.outcome)}</span>
+      <details><summary>${esc(e.summary)}</summary>
+        <div class="meta">${[e.rule_id && "rule " + e.rule_id, e.policy_ref && "policy " + e.policy_ref, e.interpretation_ref && "interpretation " + e.interpretation_ref,
+          has(e.confidence_factor) && `confidence × ${e.confidence_factor} (${e.confidence_scope.toLowerCase()})`,
+          has(e.amount_before) && `${inr(e.amount_before)} to ${inr(e.amount_after)}`, e.duration_ms && e.duration_ms + " ms"].filter(Boolean).map(esc).join("; ")}</div>
+        ${Object.keys(e.evidence || {}).length ? `<pre>${esc(JSON.stringify(e.evidence, null, 2))}</pre>` : ""}
+      </details></div>`).join("");
+  draw("all");
+  $("#trace-tools").addEventListener("click", ev => {
+    const f = ev.target.dataset.f; if (!f) return;
+    document.querySelectorAll("#trace-tools button").forEach(b => b.setAttribute("aria-pressed", b === ev.target));
+    draw(f);
+  });
+  $("#result").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start"});
+}
+boot().catch(err => { $("#empty").textContent = "Could not reach the API: " + err.message; });
 </script>
 </body>
 </html>

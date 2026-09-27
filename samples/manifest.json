@@ -1,0 +1,106 @@
+[
+  {
+    "file_name": "01_clean_prescription.png",
+    "declared_type": "PRESCRIPTION",
+    "mime_type": "image/png",
+    "variations": [],
+    "expected": {
+      "detected_document_type": "PRESCRIPTION",
+      "patient_name": "Rajesh Kumar",
+      "doctor_name": "Arun Sharma",
+      "registration_number": "KA/45678/2015",
+      "date": "2024-11-01",
+      "diagnoses": [
+        "Viral Fever"
+      ],
+      "tests_ordered": [
+        "CBC",
+        "Dengue NS1"
+      ]
+    }
+  },
+  {
+    "file_name": "02_clean_hospital_bill.png",
+    "declared_type": "HOSPITAL_BILL",
+    "mime_type": "image/png",
+    "variations": [],
+    "expected": {
+      "detected_document_type": "HOSPITAL_BILL",
+      "hospital_name": "City Medical Centre",
+      "patient_name": "Rajesh Kumar",
+      "bill_number": "CMC/2024/08321",
+      "date": "2024-11-01",
+      "total_amount": 1500,
+      "line_item_count": 3
+    }
+  },
+  {
+    "file_name": "03_phone_photo_bill.png",
+    "declared_type": "HOSPITAL_BILL",
+    "mime_type": "image/png",
+    "variations": [
+      "skew",
+      "blur",
+      "low_contrast",
+      "shadow"
+    ],
+    "expected": {
+      "detected_document_type": "HOSPITAL_BILL",
+      "hospital_name": "Apollo Hospitals",
+      "patient_name": "Deepak Shah",
+      "date": "2024-11-03",
+      "total_amount": 4500,
+      "line_item_count": 2
+    }
+  },
+  {
+    "file_name": "04_handwritten_prescription.png",
+    "declared_type": "PRESCRIPTION",
+    "mime_type": "image/png",
+    "variations": [
+      "handwriting",
+      "stamp"
+    ],
+    "expected": {
+      "detected_document_type": "PRESCRIPTION",
+      "patient_name": "Vikram Joshi",
+      "registration_number": "GJ/56789/2014",
+      "date": "2024-10-15",
+      "diagnoses": [
+        "diabetes",
+        "hypertension"
+      ]
+    }
+  },
+  {
+    "file_name": "05_altered_pharmacy_bill.png",
+    "declared_type": "PHARMACY_BILL",
+    "mime_type": "image/png",
+    "variations": [
+      "altered_amount"
+    ],
+    "expected": {
+      "detected_document_type": "PHARMACY_BILL",
+      "patient_name": "Rajesh Kumar",
+      "date": "2024-11-01",
+      "line_item_count": 2,
+      "quality_flags": [
+        "DOCUMENT_ALTERATION"
+      ]
+    }
+  },
+  {
+    "file_name": "06_two_page_bill.pdf",
+    "declared_type": "HOSPITAL_BILL",
+    "mime_type": "application/pdf",
+    "variations": [],
+    "expected": {
+      "detected_document_type": "HOSPITAL_BILL",
+      "hospital_name": "Manipal Hospitals",
+      "patient_name": "Priya Singh",
+      "date": "2024-10-15",
+      "total_amount": 2600,
+      "line_item_count": 4
+    }
+  }
+]
